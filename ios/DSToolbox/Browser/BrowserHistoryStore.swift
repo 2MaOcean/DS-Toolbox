@@ -1,4 +1,5 @@
 import Foundation
+import Combine
 struct HistoryEntry: Codable, Identifiable { var id = UUID(); var title: String; var url: String; var visitedAt: Date }
 final class BrowserHistoryStore: ObservableObject {
     static let shared = BrowserHistoryStore(); @Published private(set) var entries: [HistoryEntry] = []; private let key = "browser.history"

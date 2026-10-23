@@ -1,4 +1,5 @@
 import Foundation
+import Combine
 struct Bookmark: Codable, Identifiable { var id = UUID(); var title: String; var url: String; var addedAt: Date }
 final class BookmarkStore: ObservableObject {
     static let shared = BookmarkStore(); @Published private(set) var bookmarks: [Bookmark] = []; private let key = "browser.bookmarks"
