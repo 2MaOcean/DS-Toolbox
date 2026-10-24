@@ -6,11 +6,15 @@ struct BrowserView: View {
     @State private var input = ""
     @State private var showBookmarks = false
     @State private var showHistory = false
+    @State private var showTabs = false
 
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                if let tab = session.activeTab { WebViewContainer(webView: tab.webView) }
+                if let tab = session.activeTab {
+                    WebViewContainer(webView: tab.webView, tabID: tab.id)
+                        .id(tab.id)
+                }
                 HStack {
                     TextField("搜索或输入网址", text: $input)
                         .textFieldStyle(.roundedBorder)
@@ -27,6 +31,7 @@ struct BrowserView: View {
                     Button { showBookmarks = true } label: { Image(systemName: "bookmark") }
                     Button { showHistory = true } label: { Image(systemName: "clock") }
                     Button { toggleBookmark() } label: { Image(systemName: bookmarkIcon) }
+                    Button { showTabs = true } label: { Image(systemName: "square.on.square") }
                     Spacer()
                     Button { session.newTab() } label: { Image(systemName: "plus.square") }
                 }.padding()
@@ -34,9 +39,8 @@ struct BrowserView: View {
             .navigationTitle(session.activeTab?.title ?? "浏览器")
             .sheet(isPresented: $showBookmarks) { BookmarksSheet { load($0) } }
             .sheet(isPresented: $showHistory) { HistorySheet { load($0) } }
-            .sheet(item: $session.pendingDownload) { item in
-                PendingDownloadSheet(item: item)
-            }
+            .sheet(isPresented: $showTabs) { TabsSheet() }
+            .sheet(item: $session.pendingDownload) { PendingDownloadSheet(item: $0) }
         }
     }
 
@@ -44,12 +48,10 @@ struct BrowserView: View {
         guard let url = session.activeTab?.webView.url?.absoluteString else { return "bookmark" }
         return BookmarkStore.shared.contains(url: url) ? "bookmark.fill" : "bookmark"
     }
-
     private func go() {
         let s = input.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !s.isEmpty else { return }
-        let urlString = s.hasPrefix("http") ? s : "https://\(s)"
-        load(urlString)
+        load(s.hasPrefix("http") ? s : "https://\(s)")
     }
     private func load(_ s: String) {
         guard let u = URL(string: s) else { return }
@@ -58,13 +60,13 @@ struct BrowserView: View {
     }
     private func toggleBookmark() {
         guard let url = session.activeTab?.webView.url?.absoluteString else { return }
-        let title = session.activeTab?.title ?? url
-        session.toggleBookmark(title: title, url: url)
+        session.toggleBookmark(title: session.activeTab?.title ?? url, url: url)
     }
 }
 
 struct WebViewContainer: UIViewRepresentable {
     let webView: WKWebView
+    let tabID: UUID
     func makeUIView(context: Context) -> WKWebView { webView }
     func updateUIView(_ uiView: WKWebView, context: Context) {}
 }
