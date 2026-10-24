@@ -1,22 +1,43 @@
 import SwiftUI
+
 struct TabsSheet: View {
-    @ObservedObject var session: BrowserSession
+    @ObservedObject var session = BrowserSession.shared
     @Environment(\.dismiss) private var dismiss
+
     var body: some View {
         NavigationStack {
             List {
                 ForEach(session.tabs) { tab in
-                    Button { session.activeTabID = tab.id; dismiss() } label: {
+                    Button {
+                        session.activeTabID = tab.id
+                        dismiss()
+                    } label: {
                         HStack {
-                            VStack(alignment: .leading) { Text(tab.title).font(.headline); Text(tab.urlString).font(.caption).foregroundStyle(.secondary).lineLimit(1) }
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(tab.title).lineLimit(1)
+                                Text(tab.urlString).font(.caption)
+                                    .foregroundStyle(.secondary).lineLimit(1)
+                            }
                             Spacer()
-                            if tab.id == session.activeTabID { Image(systemName: "checkmark.circle.fill").foregroundStyle(.blue) }
+                            if session.activeTabID == tab.id {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundStyle(Color.accentColor)
+                            }
                         }
-                    }.swipeActions { Button(role: .destructive) { session.closeTab(tab.id) } label: { Label("关闭", systemImage: "xmark") } }
+                    }
+                    .swipeActions {
+                        Button("关闭", role: .destructive) { session.closeTab(tab.id) }
+                    }
                 }
-            }.navigationTitle("标签").toolbar {
-                ToolbarItem(placement: .confirmationAction) { Button("新建") { session.newTab(); dismiss() } }
+            }
+            .navigationTitle("标签页")
+            .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("关闭") { dismiss() } }
+                ToolbarItem(placement: .primaryAction) {
+                    Button {
+                        session.newTab(); dismiss()
+                    } label: { Image(systemName: "plus") }
+                }
             }
         }
     }
