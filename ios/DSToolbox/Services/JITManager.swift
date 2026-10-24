@@ -26,7 +26,9 @@ final class JITManager: ObservableObject {
             }
             return JailbreakJITProvider.enable(pid: pid)
         case .stikDebug:
-            return StikDebugProvider.shared.enableJIT(bundleID: bid)
+            let r = StikDebugProvider.shared.enableJIT(bundleID: bid)
+            _ = StikDebugProvider.shared.open()
+            return r
         }
     }
 }

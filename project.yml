@@ -30,9 +30,6 @@ targets:
         CODE_SIGNING_ALLOWED: NO
         CODE_SIGNING_REQUIRED: NO
         SWIFT_OBJC_BRIDGING_HEADER: ios/DSToolbox/DSToolbox-Bridging-Header.h
-        LIBRARY_SEARCH_PATHS: "$(SRCROOT)/ios/DSToolbox/StikJITLibs"
-        HEADER_SEARCH_PATHS: "$(SRCROOT)/ios/DSToolbox/StikJITLibs/include"
-        OTHER_LDFLAGS: "-lidevice_ffi -lz -lbz2 -framework Foundation"
         OTHER_LDFLAGS: "-framework IOSurface -framework Foundation"
     info:
       path: Info.plist

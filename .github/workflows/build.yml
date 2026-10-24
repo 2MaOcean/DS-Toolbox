@@ -8,23 +8,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: brew install xcodegen
-      - name: Install Rust target
-        run: rustup target add aarch64-apple-ios
-      - name: Build idevice for iOS device
-        run: |
-          set -e
-          git clone --depth 1 https://gh-proxy.org/https://github.com/jkcoxson/idevice.git /tmp/idevice-src
-          cd /tmp/idevice-src
-          export BINDGEN_EXTRA_CLANG_ARGS="--sysroot=$(xcrun --sdk iphoneos --show-sdk-path)"
-          export IPHONEOS_DEPLOYMENT_TARGET=17.0
-          cargo build --release --target aarch64-apple-ios -p idevice_ffi --no-default-features || \
-          cargo build --release --target aarch64-apple-ios --no-default-features || \
-          cargo build --release --target aarch64-apple-ios
-          ls -lh target/aarch64-apple-ios/release/*.a || true
-          mkdir -p "$GITHUB_WORKSPACE/ios/DSToolbox/StikJITLibs/include"
-          cp target/aarch64-apple-ios/release/libidevice_ffi.a "$GITHUB_WORKSPACE/ios/DSToolbox/StikJITLibs/" 2>/dev/null || true
-          find . -name "idevice.h" -exec cp {} "$GITHUB_WORKSPACE/ios/DSToolbox/StikJITLibs/include/" \; 2>/dev/null || true
-          ls -lh "$GITHUB_WORKSPACE/ios/DSToolbox/StikJITLibs/"
       - run: xcodegen generate --spec project.yml
       - name: Build
         run: xcodebuild clean build -project DSToolbox.xcodeproj -scheme DSToolbox -sdk iphoneos -configuration Release -derivedDataPath build CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO
