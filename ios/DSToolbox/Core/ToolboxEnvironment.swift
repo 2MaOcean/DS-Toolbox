@@ -7,16 +7,19 @@ final class ToolboxEnvironment: ObservableObject {
 
     @Published var currentKind: DriveKind = .baidu
     @Published var credential: DriveCredential?
+    
+    @Published var dualPaneEnabled: Bool = UserDefaults.standard.bool(forKey: "ds.dualPaneEnabled") {
+        didSet { UserDefaults.standard.set(dualPaneEnabled, forKey: "ds.dualPaneEnabled") }
+    }
 
     let registry: DriveRegistry
     let queue: DownloadQueue
     let history: DownloadHistory
 
-    var dualPaneEnabled: Bool = UserDefaults.standard.bool(forKey: "ds.dualPaneEnabled")
-
     private init() {
         self.registry = DriveRegistry(adapters: [
-            BaiduAdapter(), QuarkAdapter(), GuangyaAdapter(), CMCCAdapter(), TelecomAdapter()
+            BaiduAdapter(), QuarkAdapter(), GuangyaAdapter(),
+            CMCCAdapter(), TelecomAdapter()
         ])
         self.queue = DownloadQueue.shared
         self.history = DownloadHistory.shared
