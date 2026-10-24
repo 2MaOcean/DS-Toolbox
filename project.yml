@@ -21,6 +21,7 @@ targets:
     dependencies:
       - package: ZIPFoundation
       - package: ZSign
+        product: ZSignApple
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.ds.toolbox

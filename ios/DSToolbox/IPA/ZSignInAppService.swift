@@ -1,6 +1,6 @@
 import Foundation
 import ZIPFoundation
-import ZSign
+import ZSignApple
 
 final class ZSignInAppService {
     static let shared = ZSignInAppService()
