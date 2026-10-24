@@ -1,3 +1,19 @@
 import Foundation
-struct ImportedIPA: Identifiable { let id = UUID(); let fileURL: URL; let fileName: String; let fileSize: Int64; var bundleID: String?; var appName: String?; var version: String?; var isEncrypted: Bool = false }
-struct SigningCertificate: Codable, Identifiable { var id: String { uuid }; let uuid: String; let displayName: String; let p12Path: String; let provisionPath: String; let p12Password: String; let expiresAt: Date?; let teamID: String?; let isFreeAccount: Bool }
+
+struct ImportedIPA: Identifiable, Hashable {
+    let id: UUID
+    let fileURL: URL
+    let fileName: String
+    let size: Int64
+    let bundleID: String?
+    let displayName: String?
+    let version: String?
+    let isEncrypted: Bool
+}
+
+enum InstallMethod: String, CaseIterable, Identifiable {
+    case trollStore = "TrollStore"
+    case itmsServices = "OTA 安装"
+    case documentPicker = "系统分享"
+    var id: String { rawValue }
+}

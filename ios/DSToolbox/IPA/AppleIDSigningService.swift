@@ -1,7 +1,21 @@
 import Foundation
+
 final class AppleIDSigningService {
-    static let shared = AppleIDSigningService(); private init() {}
-    func signIn(appleID: String, password: String, anisetteServer: URL, deviceUDID: String) async throws {
-        throw NSError(domain: "AppleID", code: 1, userInfo: [NSLocalizedDescriptionKey: "Apple ID 自签需要完整的 Anisette 服务，本项目只提供调度框架"])
+    static let shared = AppleIDSigningService()
+    private init() {}
+
+    enum SignError: LocalizedError {
+        case notImplemented, invalidCredentials
+        var errorDescription: String? {
+            switch self {
+            case .notImplemented: return "Anisette 框架未集成"
+            case .invalidCredentials: return "Apple ID 或密码错误"
+            }
+        }
+    }
+
+    func sign(appleID: String, password: String, ipa: URL, output: URL) async throws {
+        // Anisette 数据获取 → GS 认证 → 生成证书 → 复用 IPASigningService
+        throw SignError.notImplemented
     }
 }

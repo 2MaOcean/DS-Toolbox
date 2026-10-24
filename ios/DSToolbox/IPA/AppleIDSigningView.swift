@@ -1,12 +1,36 @@
 import SwiftUI
+
 struct AppleIDSigningView: View {
-    @State private var id = ""; @State private var pwd = ""; @State private var server = ""; @State private var message: String?
+    @State private var appleID = ""
+    @State private var password = ""
+    @State private var ipaPath = ""
+    @State private var status = ""
+    @State private var running = false
+
     var body: some View {
         Form {
-            Section("账号") { TextField("Apple ID", text: $id).keyboardType(.emailAddress); SecureField("密码", text: $pwd) }
-            Section("服务") { TextField("Anisette 服务地址", text: $server) }
-            if let m = message { Section { Text(m).foregroundStyle(.red) } }
-            Section { Button("登录并获取证书") { Task { do { try await AppleIDSigningService.shared.signIn(appleID: id, password: pwd, anisetteServer: URL(string: server)!, deviceUDID: ""); message = "成功" } catch { message = error.localizedDescription } } } }
-        }.navigationTitle("Apple ID 自签")
+            Section("Apple ID") {
+                TextField("账号", text: $appleID).textInputAutocapitalization(.never).autocorrectionDisabled()
+                SecureField("密码", text: $password)
+            }
+            Section("IPA") { TextField("IPA 路径", text: $ipaPath) }
+            Section {
+                Button(running ? "签名中..." : "开始签名") { sign() }.disabled(running || appleID.isEmpty || password.isEmpty || ipaPath.isEmpty)
+                if !status.isEmpty { Text(status).font(.caption).foregroundStyle(.secondary) }
+            }
+        }
+        .navigationTitle("Apple ID 自签")
+    }
+
+    private func sign() {
+        running = true
+        Task {
+            do {
+                let out = URL(fileURLWithPath: NSHomeDirectory()).appendingPathComponent("Documents/signed.ipa")
+                try await AppleIDSigningService.shared.sign(appleID: appleID, password: password, ipa: URL(fileURLWithPath: ipaPath), output: out)
+                status = "已生成：\(out.lastPathComponent)"
+            } catch { status = error.localizedDescription }
+            running = false
+        }
     }
 }

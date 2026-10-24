@@ -1,20 +1,59 @@
 import SwiftUI
+
 struct IPAManagerView: View {
-    @State private var ipas: [ImportedIPA] = []; @State private var showPicker = false; @State private var actionIPA: ImportedIPA?
+    @State private var ipas: [ImportedIPA] = []
+    @State private var showPicker = false
+    @State private var selected: ImportedIPA?
+
     var body: some View {
-        List {
-            Button("导入 IPA") { showPicker = true }
-            ForEach(ipas) { ipa in
-                VStack(alignment: .leading) { Text(ipa.appName ?? ipa.fileName).font(.headline); Text(byteString(ipa.fileSize)).font(.caption).foregroundStyle(.secondary) }
-                    .onTapGesture { actionIPA = ipa }
+        NavigationStack {
+            List(ipas) { ipa in
+                Button {
+                    selected = ipa
+                } label: {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(ipa.displayName ?? ipa.fileName).font(.headline)
+                        if let bid = ipa.bundleID { Text(bid).font(.caption).foregroundStyle(.secondary) }
+                        Text("v\(ipa.version ?? "?") · \(byteString(ipa.size))").font(.caption2).foregroundStyle(.secondary)
+                    }
+                }
             }
-        }.navigationTitle("IPA 管理").fileImporter(isPresented: $showPicker, allowedContentTypes: [.data]) { r in
-            if case .success(let u) = r, u.pathExtension.lowercased() == "ipa" {
-                let d = FileManager.default.temporaryDirectory.appendingPathComponent(u.lastPathComponent); try? FileManager.default.copyItem(at: u, to: d)
-                var ipa = ImportedIPA(fileURL: d, fileName: u.lastPathComponent, fileSize: Int64((try? d.resourceValues(forKeys: [.fileSizeKey]))?.fileSize ?? 0))
-                if let m = IPAMetadataReader.read(from: d) { ipa.bundleID = m.bundleID; ipa.appName = m.name; ipa.version = m.version; ipa.isEncrypted = m.isEncrypted }
+            .navigationTitle("IPA 管理")
+            .toolbar {
+                ToolbarItem(placement: .primaryAction) { Button("导入") { showPicker = true } }
+            }
+            .sheet(isPresented: $showPicker) { ipaPicker }
+            .sheet(item: $selected) { ipa in IPAActionSheet(ipa: ipa) { refresh() } }
+        }
+    }
+
+    private var ipaPicker: some View {
+        IPAPicker { url in
+            if let meta = IPAMetadataReader.read(from: url) {
+                let ipa = ImportedIPA(id: UUID(), fileURL: url, fileName: url.lastPathComponent,
+                                      size: (try? url.resourceValues(forKeys: [.fileSizeKey]))?.fileSize.map(Int64.init) ?? 0,
+                                      bundleID: meta.bundleID, displayName: meta.name, version: meta.version, isEncrypted: meta.isEncrypted)
                 ipas.append(ipa)
             }
-        }.sheet(item: $actionIPA) { ipa in IPAActionSheet(ipa: ipa) { print($0) } }
+            showPicker = false
+        }
+    }
+    private func refresh() { selected = nil }
+}
+
+struct IPAPicker: UIViewControllerRepresentable {
+    let onPick: (URL) -> Void
+    func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
+        let p = UIDocumentPickerViewController(forOpeningContentTypes: [.data])
+        p.allowsMultipleSelection = false
+        p.delegate = context.coordinator
+        return p
+    }
+    func updateUIViewController(_ vc: UIDocumentPickerViewController, context: Context) {}
+    func makeCoordinator() -> Coord { Coord(onPick: onPick) }
+    final class Coord: NSObject, UIDocumentPickerDelegate {
+        let onPick: (URL) -> Void
+        init(onPick: @escaping (URL) -> Void) { self.onPick = onPick }
+        func documentPicker(_ c: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) { if let u = urls.first { onPick(u) } }
     }
 }
