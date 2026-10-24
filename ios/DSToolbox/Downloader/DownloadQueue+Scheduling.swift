@@ -59,9 +59,23 @@ extension DownloadQueue {
                     await MainActor.run { self.updateTaskState(id: task.id, state: .failed); self.running.removeValue(forKey: task.id); self.clearSpeed(id: task.id); self.needsRelogin = kind; self.save() }
                     return
                 }
-                await MainActor.run { self.updateTaskState(id: task.id, state: .failed); self.running.removeValue(forKey: task.id); self.clearSpeed(id: task.id); self.save(); self.pump() }
+                await MainActor.run { self.updateRetries(id: task.id, retries: self.tasks.first(where: { $0.id == task.id })?.retries ?? 0 + 1)
+                    if (self.tasks.first(where: { $0.id == task.id })?.retries ?? 0) < 3 {
+                        self.updateTaskState(id: task.id, state: .queued)
+                    } else {
+                        self.updateTaskState(id: task.id, state: .failed)
+                        NotificationManager.shared.notifyDownloadFailed(fileName: task.fileName, reason: "多次重试失败")
+                    }
+                    self.running.removeValue(forKey: task.id); self.clearSpeed(id: task.id); self.save(); self.pump() }
             } catch {
-                await MainActor.run { self.updateTaskState(id: task.id, state: .failed); self.running.removeValue(forKey: task.id); self.clearSpeed(id: task.id); self.save(); self.pump() }
+                await MainActor.run { self.updateRetries(id: task.id, retries: self.tasks.first(where: { $0.id == task.id })?.retries ?? 0 + 1)
+                    if (self.tasks.first(where: { $0.id == task.id })?.retries ?? 0) < 3 {
+                        self.updateTaskState(id: task.id, state: .queued)
+                    } else {
+                        self.updateTaskState(id: task.id, state: .failed)
+                        NotificationManager.shared.notifyDownloadFailed(fileName: task.fileName, reason: "多次重试失败")
+                    }
+                    self.running.removeValue(forKey: task.id); self.clearSpeed(id: task.id); self.save(); self.pump() }
             }
         }
         running[task.id] = handle
