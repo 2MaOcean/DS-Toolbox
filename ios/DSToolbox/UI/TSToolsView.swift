@@ -28,6 +28,10 @@ struct TSToolsView: View {
                     NavigationLink("应用管理", destination: AppManagerView())
                     NavigationLink("插件检查", destination: InjectionInspectorView())
                 }
+                Section("下载") {
+                    NavigationLink("Aria2 导入", destination: Aria2ImportView())
+                    NavigationLink("种子", destination: TorrentView())
+                }
                 Section("IPA") {
                     NavigationLink("IPA 管理", destination: IPAManagerView())
                     NavigationLink("证书管理", destination: CertificateManagementView())
