@@ -30,7 +30,11 @@ final class AIService: ObservableObject {
     }
 
     private func runAgentLoop() async {
-        while true {
+        var stepCount = 0
+        let maxSteps = 5 // 🚨 安全阀：最多连续执行 5 次工具调用
+        
+        while stepCount < maxSteps {
+            stepCount += 1
             do {
                 let (content, toolCalls) = try await requestChatCompletion()
                 if let tc = toolCalls, !tc.isEmpty {
@@ -45,26 +49,33 @@ final class AIService: ObservableObject {
                             }
                         }
                         if let argsData = call.function.arguments.data(using: .utf8), let args = try? JSONSerialization.jsonObject(with: argsData) as? [String: Any] {
-                            let result = try await AIToolExecutor.execute(name: call.function.name, arguments: args)
+                            let result = (try? await AIToolExecutor.execute(name: call.function.name, arguments: args)) ?? "执行出错"
                             messages.append(ChatMessage(role: "tool", content: result, tool_calls: nil, tool_call_id: call.id))
                         }
                     }
                 } else {
-                    messages.append(ChatMessage(role: "assistant", content: content, tool_calls: nil, tool_call_id: nil))
+                    if let c = content, !c.isEmpty {
+                        messages.append(ChatMessage(role: "assistant", content: c, tool_calls: nil, tool_call_id: nil))
+                    }
                     break
                 }
             } catch {
-                messages.append(ChatMessage(role: "assistant", content: "错误: \(error.localizedDescription)", tool_calls: nil, tool_call_id: nil))
+                messages.append(ChatMessage(role: "assistant", content: "请求失败: \(error.localizedDescription)", tool_calls: nil, tool_call_id: nil))
                 break
             }
         }
+        
+        if stepCount >= maxSteps {
+            messages.append(ChatMessage(role: "assistant", content: "⚠️ 已达到最大工具调用限制(5次)，为防止死循环已强制终止本次对话。", tool_calls: nil, tool_call_id: nil))
+        }
     }
-    
+
     func approvePendingTool() {
         guard let call = pendingToolCall else { return }
         authorizedTools[call.function.name] = Date()
         pendingToolCall = nil
-        Task { 
+        
+        Task {
             if let argsData = call.function.arguments.data(using: .utf8), let args = try? JSONSerialization.jsonObject(with: argsData) as? [String: Any] {
                 let result = (try? await AIToolExecutor.execute(name: call.function.name, arguments: args)) ?? "执行失败"
                 messages.append(ChatMessage(role: "tool", content: result, tool_calls: nil, tool_call_id: call.id))
@@ -76,14 +87,14 @@ final class AIService: ObservableObject {
     func rejectPendingTool() {
         if let call = pendingToolCall {
             messages.append(ChatMessage(role: "tool", content: "用户拒绝了操作", tool_calls: nil, tool_call_id: call.id))
-            messages.append(ChatMessage(role: "assistant", content: "操作已被用户拒绝。", tool_calls: nil, tool_call_id: nil))
+            messages.append(ChatMessage(role: "assistant", content: "操作已被用户拒绝，已停止执行。", tool_calls: nil, tool_call_id: nil))
         }
         pendingToolCall = nil
         isLoading = false
     }
 
     private func requestChatCompletion() async throws -> (String?, [ToolCall]?) {
-        guard !apiKey.isEmpty, let url = URL(string: "\(baseURL)/chat/completions") else { throw NSError(domain: "AI", code: 400, userInfo: [NSLocalizedDescriptionKey: "请先在设置中填写 API Key"]) }
+        guard !apiKey.isEmpty, let url = URL(string: "\(baseURL)/chat/completions") else { throw NSError(domain: "AI", code: 400, userInfo: [NSLocalizedDescriptionKey: "请先填写 API Key"]) }
         var req = URLRequest(url: url)
         req.httpMethod = "POST"
         req.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
