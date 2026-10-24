@@ -1,0 +1,53 @@
+name: Build DS-Toolbox (Unsigned)
+on:
+  push:
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install xcodegen
+        run: brew install xcodegen
+
+      - name: Install Rust target
+        run: rustup target add aarch64-apple-ios
+
+      - name: Build idevice for iOS device
+        run: |
+          set -e
+          git clone --depth 1 https://gh-proxy.org/https://github.com/jkcoxson/idevice.git /tmp/idevice-src
+          cd /tmp/idevice-src
+          export BINDGEN_EXTRA_CLANG_ARGS="--sysroot=$(xcrun --sdk iphoneos --show-sdk-path)"
+          export IPHONEOS_DEPLOYMENT_TARGET=17.0
+          cargo build --release --target aarch64-apple-ios
+          mkdir -p "$GITHUB_WORKSPACE/ios/DSToolbox/StikJITLibs/include"
+          cp target/aarch64-apple-ios/release/libidevice_ffi.a "$GITHUB_WORKSPACE/ios/DSToolbox/StikJITLibs/"
+          find . -name "idevice.h" -exec cp {} "$GITHUB_WORKSPACE/ios/DSToolbox/StikJITLibs/include/" \;
+          ls -lh "$GITHUB_WORKSPACE/ios/DSToolbox/StikJITLibs/"
+
+      - name: Generate Xcode project
+        run: xcodegen generate --spec project.yml
+
+      - name: Build
+        run: |
+          xcodebuild clean build \
+            -project DSToolbox.xcodeproj \
+            -scheme DSToolbox \
+            -sdk iphoneos \
+            -configuration Release \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO
+
+      - name: Package
+        run: |
+          mkdir -p Payload
+          cp -R build/Build/Products/Release-iphoneos/DSToolbox.app Payload/
+          zip -r DSToolbox-unsigned.ipa Payload
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DSToolbox-unsigned
+          path: DSToolbox-unsigned.ipa

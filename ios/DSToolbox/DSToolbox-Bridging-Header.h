@@ -1,3 +1,3 @@
-#import "kexploit/src/DSKrw.h"
+#import "kexploit/DSKrw.h"
 #import "kexploit/XPFBridge.h"
-#import "StikJITLibs/idevice.h"
+#import "idevice.h"
