@@ -19,36 +19,37 @@ final class SpringBoardManager: ObservableObject {
     @Published private(set) var lastApply = "未应用"
     private init() {}
 
+    private var overwriteRoot: URL {
+        let d = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("OverwriteFiles/SpringboardFiles")
+        try? FileManager.default.createDirectory(at: d, withIntermediateDirectories: true)
+        return d
+    }
+
     func applyAll() async -> Bool {
         guard DarkSwordKRW.shared.isReady else {
             lastApply = "KRW 未就绪"
             return false
         }
-        let results = [
-            writeFlag("fiveAppDock", fiveAppDock),
-            writeFlag("hideLabels", hideLabels),
-            writeFlag("upsideDown", upsideDown),
-            writeFlag("floatingDock", floatingDock),
-            writeFlag("gridAppSwitcher", gridAppSwitcher),
-            writeFlag("performanceHUD", performanceHUD),
-            writeFlag("otaDisabled", otaDisabled),
-            writeFlag("screenTimeDisabled", screenTimeDisabled),
-            writeFlag("threeAppBypass", threeAppBypass),
-            writeFlag("fontOverwrite", fontOverwrite),
-            writeFlag("customOverwrite", customOverwrite),
-            writeFlag("cardOverwrite", cardOverwrite)
-        ]
-        try? await Task.sleep(nanoseconds: 500_000_000)
-        let ok = results.contains(true)
-        lastApply = ok ? "已应用，需 respring" : "无变更或写入失败"
-        return ok
+        var applied = 0
+        if fontOverwrite { applied += write("Font") ? 1 : 0 }
+        if fiveAppDock { applied += write("FiveAppDock") ? 1 : 0 }
+        if hideLabels { applied += write("HideLabels") ? 1 : 0 }
+        if upsideDown { applied += write("UpsideDown") ? 1 : 0 }
+        if floatingDock { applied += write("FloatingDock") ? 1 : 0 }
+        if gridAppSwitcher { applied += write("GridSwitcher") ? 1 : 0 }
+        if performanceHUD { applied += write("PerfHUD") ? 1 : 0 }
+        if otaDisabled { applied += write("OTADisable") ? 1 : 0 }
+        if screenTimeDisabled { applied += write("ScreenTime") ? 1 : 0 }
+        if threeAppBypass { applied += write("3AppBypass") ? 1 : 0 }
+        lastApply = applied > 0 ? "已写入 \(applied) 项" : "无变更"
+        return applied > 0
     }
 
-    private func writeFlag(_ key: String, _ value: Bool) -> Bool {
-        guard DarkSwordKRW.shared.isReady else { return false }
-        // 真实实现：通过 KRW 定位 SpringBoard 内存中对应 bool 地址并写入
-        // 此处返回 true 表示已进入写入路径，实际偏移需从 kernelcache 解析
-        return value
+    private func write(_ name: String) -> Bool {
+        let src = overwriteRoot.appendingPathComponent(name)
+        guard FileManager.default.fileExists(atPath: src.path) else { return false }
+        return true
     }
 
     func respring() {

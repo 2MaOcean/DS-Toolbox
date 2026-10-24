@@ -1,90 +1,72 @@
 import Foundation
+import Combine
 
 @MainActor
 final class KernelcacheAutoResolver: ObservableObject {
     static let shared = KernelcacheAutoResolver()
     @Published private(set) var status = "未开始"
     @Published private(set) var offsets: KernelOffsets?
-    private init() {}
+    private init() { loadCached() }
 
-    private var kcURL: URL {
+    private var kcPath: String {
         FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("kernelcache")
+            .appendingPathComponent("kernelcache").path
     }
 
-    /// 对应 Lara 的 getbmhash.swift + fetchkcache.swift 链路
-    func autoFetchAndResolve() async -> Bool {
-        guard DarkSwordKRW.shared.isReady else {
-            status = "请先运行 DarkSword"
+    func autoFetchAndResolve(ipswURL: String? = nil) async -> Bool {
+        if let s = ipswURL, let url = URL(string: s) {
+            status = "下载 IPSW..."
+            if let tmp = try? await URLSession.shared.download(from: url).0 {
+                try? FileManager.default.removeItem(atPath: kcPath)
+                try? FileManager.default.moveItem(at: tmp, to: URL(fileURLWithPath: kcPath))
+                return resolveOffsets()
+            }
+            status = "下载失败"
             return false
         }
-        status = "定位 kernelcache..."
-        guard let real = locateKernelcache() else {
-            status = "未找到，需手动放入 Documents/kernelcache"
-            return false
-        }
-        status = "拷贝中..."
-        guard copyViaKRW(from: real) else {
-            status = "拷贝失败"
-            return false
-        }
-        return resolve()
+        status = "请提供 IPSW 直链"
+        return false
     }
 
     func importManual(url: URL) async -> Bool {
-        try? FileManager.default.removeItem(at: kcURL)
-        try? FileManager.default.copyItem(at: url, to: kcURL)
-        return resolve()
+        try? FileManager.default.removeItem(atPath: kcPath)
+        try? FileManager.default.copyItem(at: url, to: URL(fileURLWithPath: kcPath))
+        return resolveOffsets()
     }
 
-    private func resolve() -> Bool {
+    private func resolveOffsets() -> Bool {
         status = "XPF 解析偏移..."
-        var out = DSOffsets()
-        let ok = kcURL.path.withCString { ptr in
-            xpf_resolve_offsets(ptr, &out)
-        }
-        guard ok else {
-            status = "XPF 解析失败（需真实 XPF 库）"
-            return false
-        }
-        let iosV = CapabilityDetector.shared.iosVersion
-        let chip = CapabilityDetector.shared.chipFamily.rawValue
+        var out = XPFOffsets()
+        let ok = kcPath.withCString { xpf_resolve($0, &out) }
+        guard ok else { status = "XPF 解析失败"; return false }
         let o = KernelOffsets(
-            iosVersion: iosV, chip: chip,
+            iosVersion: CapabilityDetector.shared.iosVersion,
+            chip: CapabilityDetector.shared.chipFamily.rawValue,
             kernelBase: out.kernel_base, t1szBoot: out.t1sz_boot,
             offsetIcmp6Filt: out.offset_icmp6filt,
             offsetSoProto: out.offset_so_proto,
             offsetPrInput: out.offset_pr_input
         )
-        offsets = o; status = "✅ 偏移就绪"
-        if let d = try? JSONEncoder().encode(o) {
-            UserDefaults.standard.set(d, forKey: "ds.kernelOffsets")
-        }
+        offsets = o
+        status = "✅ 偏移就绪"
+        saveCached(o)
         return true
     }
 
-    private func locateKernelcache() -> String? {
-        // getbmhash 逻辑：扫描 /private/preboot 下 UUID 目录
-        let root = "/private/preboot"
-        guard let dirs = try? FileManager.default.contentsOfDirectory(atPath: root) else { return nil }
-        for d in dirs where d.contains("-") && !d.hasPrefix(".") {
-            let p = "\(root)/\(d)/boot/System/Library/Caches/com.apple.kernelcaches/kernelcache"
-            if FileManager.default.fileExists(atPath: p) { return p }
+    private func saveCached(_ o: KernelOffsets) {
+        if let d = try? JSONEncoder().encode(o) {
+            UserDefaults.standard.set(d, forKey: "ds.kernelOffsets")
         }
-        let fallback = "/System/Library/Caches/com.apple.kernelcaches/kernelcache"
-        return FileManager.default.fileExists(atPath: fallback) ? fallback : nil
     }
 
-    private func copyViaKRW(from path: String) -> Bool {
-        if let d = try? Data(contentsOf: URL(fileURLWithPath: path)) {
-            try? d.write(to: kcURL, options: .atomic)
-            return true
-        }
-        return false
+    private func loadCached() {
+        guard let d = UserDefaults.standard.data(forKey: "ds.kernelOffsets"),
+              let o = try? JSONDecoder().decode(KernelOffsets.self, from: d) else { return }
+        offsets = o; status = "已缓存"
     }
 
     func deleteData() {
-        try? FileManager.default.removeItem(at: kcURL)
+        try? FileManager.default.removeItem(atPath: kcPath)
         UserDefaults.standard.removeObject(forKey: "ds.kernelOffsets")
         offsets = nil; status = "已清除"
     }
