@@ -3,7 +3,7 @@ import SwiftUI
 @main
 struct DSToolboxApp: App {
     @StateObject private var env = ToolboxEnvironment.shared
-    @AppStorage("ds.hasAcceptedAgreement") private var hasAcceptedAgreement = false
+    @AppStorage("ds.hasAcceptedAgreement") private var hasAccepted = false
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
@@ -18,8 +18,10 @@ struct DSToolboxApp: App {
 
     var body: some Scene {
         WindowGroup {
-            if hasAcceptedAgreement {
-                ContentView().environmentObject(env).onOpenURL { url in URLSchemeHandler.shared.handle(url, env: env) }
+            if hasAccepted {
+                ContentView()
+                    .environmentObject(env)
+                    .onOpenURL { URLSchemeHandler.shared.handle($0, env: env) }
             } else {
                 AgreementView()
             }
@@ -27,7 +29,9 @@ struct DSToolboxApp: App {
         .onChange(of: scenePhase) { _, phase in
             switch phase {
             case .background:
-                env.queue.pauseAll(); SharedWebSession.shared.enterBackground(); BackgroundKeepAliveService.shared.persistCurrentMode()
+                env.queue.pauseAll()
+                SharedWebSession.shared.enterBackground()
+                BackgroundKeepAliveService.shared.persistCurrentMode()
             case .active:
                 SharedWebSession.shared.enterForeground()
             default: break
