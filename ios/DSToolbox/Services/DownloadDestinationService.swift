@@ -10,8 +10,9 @@ final class DownloadDestinationService: ObservableObject {
 
     private init() {
         let fallback = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].appendingPathComponent("Downloads")
+        var stale = false
         if let data = UserDefaults.standard.data(forKey: bookmarkKey),
-           let url = try? URL(resolvingBookmarkData: data, options: [.withoutUI], relativeTo: nil, bookmarkDataIsStale: nil),
+           let url = try? URL(resolvingBookmarkData: data, options: [.withoutUI], relativeTo: nil, bookmarkDataIsStale: &stale),
            FileManager.default.isWritableFile(atPath: url.path) {
             _ = url.startAccessingSecurityScopedResource()
             currentDirectory = url; displayName = url.lastPathComponent.isEmpty ? url.path : url.lastPathComponent; return

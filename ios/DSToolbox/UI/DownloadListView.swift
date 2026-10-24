@@ -58,7 +58,7 @@ struct DownloadListView: View {
                 Button("导入 aria2", systemImage: "square.and.arrow.down") { showAria2 = true }
             }
             .sheet(isPresented: $showAria2) { Aria2ImportView() }
-            .sheet(item: Binding(get: { exportingURL.map { ExportWrapper(url: $0) } }, set: { exportingURL = $0?.url })) { w in DocumentExporter(urls: w.urls) }
+            .sheet(item: Binding(get: { exportingURL.map { ExportWrapper(url: $0) } }, set: { exportingURL = $0?.url })) { (w: ExportWrapper) in DocumentExporter(urls: w.urls) }
             .navigationDestination(item: $previewURL) { url in FileViewer(url: url) }
             .navigationDestination(item: $detailTask) { task in TaskDetailView(task: task) }
         }

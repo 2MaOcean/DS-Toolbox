@@ -12,7 +12,7 @@ final class ToolboxEnvironment: ObservableObject {
     let queue: DownloadQueue
     let history: DownloadHistory
 
-    @AppStorage("ds.dualPaneEnabled") var dualPaneEnabled: Bool = false
+    var dualPaneEnabled: Bool = UserDefaults.standard.bool(forKey: "ds.dualPaneEnabled")
 
     private init() {
         self.registry = DriveRegistry(adapters: [

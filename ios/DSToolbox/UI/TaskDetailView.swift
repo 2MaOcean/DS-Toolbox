@@ -52,7 +52,7 @@ struct TaskDetailView: View {
                 segmentTotal = m.segments.count; segmentDone = m.completedIndexes.count
             }
         }
-        .sheet(item: Binding(get: { exportingURL.map { ExportWrapper(url: $0) } }, set: { exportingURL = $0?.url })) { w in DocumentExporter(urls: w.urls) }
+        .sheet(item: Binding(get: { exportingURL.map { ExportWrapper(url: $0) } }, set: { exportingURL = $0?.url })) { (w: ExportWrapper) in DocumentExporter(urls: w.urls) }
     }
 
     private func statusText(_ t: DownloadTask) -> String {

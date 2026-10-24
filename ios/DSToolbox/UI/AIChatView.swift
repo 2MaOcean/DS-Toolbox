@@ -47,7 +47,7 @@ struct AIChatView: View {
                     }.disabled(ai.isLoading || input.isEmpty)
                 }.padding()
             } else {
-                WebViewContainer(webView: webAI.webView)
+                AIWebViewContainer(webView: webAI.webView)
                 HStack {
                     TextField("输入要发给网页版 AI 的内容", text: $input).textFieldStyle(.roundedBorder)
                     Button("定时自动发送") {
@@ -69,7 +69,7 @@ struct AIChatView: View {
     }
 }
 
-struct WebViewContainer: UIViewRepresentable {
+struct AIWebViewContainer: UIViewRepresentable {
     let webView: WKWebView
     func makeUIView(context: Context) -> WKWebView { webView }
     func updateUIView(_ uiView: WKWebView, context: Context) {}
