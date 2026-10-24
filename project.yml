@@ -8,6 +8,9 @@ packages:
   ZIPFoundation:
     url: https://github.com/weichsel/ZIPFoundation
     from: 0.9.0
+  ZSign:
+    url: https://github.com/zwsn/zsign-ios
+    branch: main
 targets:
   DSToolbox:
     type: application
@@ -17,42 +20,25 @@ targets:
       - path: ios/DSToolbox
     dependencies:
       - package: ZIPFoundation
+      - package: ZSign
     info:
       path: Info.plist
       properties:
         CFBundleDisplayName: DS工具箱
         CFBundleURLTypes:
           - CFBundleURLName: com.ds.toolbox
-            CFBundleURLSchemes:
-              - dstoolbox
+            CFBundleURLSchemes: [dstoolbox]
         UILaunchScreen:
           UIImageName: LaunchIcon
-          UIImageRespectsSafeAreaInsets: true
-        UIApplicationSceneManifest:
-          UIApplicationSupportsMultipleScenes: false
         UIFileSharingEnabled: true
         LSSupportsOpeningDocumentsInPlace: true
         NSAppTransportSecurity:
           NSAllowsArbitraryLoads: true
-        UIBackgroundModes:
-          - audio
-          - location
-        NSLocationWhenInUseUsageDescription: "用于后台保活，不上传位置信息。"
-        NSLocationAlwaysAndWhenInUseUsageDescription: "用于后台保活，不上传位置信息。"
-        UISupportedInterfaceOrientations:
-          - UIInterfaceOrientationPortrait
-          - UIInterfaceOrientationLandscapeLeft
-          - UIInterfaceOrientationLandscapeRight
-        UISupportedInterfaceOrientations~ipad:
-          - UIInterfaceOrientationPortrait
-          - UIInterfaceOrientationPortraitUpsideDown
-          - UIInterfaceOrientationLandscapeLeft
-          - UIInterfaceOrientationLandscapeRight
+        UIBackgroundModes: [audio, location]
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.ds.toolbox
         TARGETED_DEVICE_FAMILY: "1,2"
         SWIFT_VERSION: "5.9"
-        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         CODE_SIGNING_ALLOWED: NO
         CODE_SIGNING_REQUIRED: NO
