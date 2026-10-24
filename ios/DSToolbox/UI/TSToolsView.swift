@@ -11,9 +11,11 @@ struct TSToolsView: View {
                     Section("AI") { NavigationLink("AI 助手", destination: AIChatView()) }
                 }
                 if allowExploit {
-                    Section("高级") {
-                        NavigationLink("Lara 功能", destination: LaraFeaturesView())
+                    Section("Lara 高级") {
+                        NavigationLink("Lara 全功能", destination: LaraFullFeaturesView())
+                        NavigationLink("Lara 集成", destination: LaraIntegrationView())
                         NavigationLink("漏洞调度", destination: ExploitSettingsView())
+                        NavigationLink("内部工具", destination: InternalToolsView())
                         NavigationLink("StikDebug", destination: StikDebugGuideView())
                         NavigationLink("JIT 控制", destination: JITControlView())
                     }
