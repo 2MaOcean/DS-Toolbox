@@ -9,18 +9,23 @@ struct TSToolsView: View {
         NavigationStack {
             ScrollView {
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 160), spacing: 12)], spacing: 12) {
-                    // 基础功能（始终可见）
                     entry("系统监控", "gauge", "CPU / 内存 / 电池") { SystemMonitorView() }
                     entry("网络工具", "network", "DNS 与 IP 查询") { NetworkToolsView() }
                     entry("描述文件生成", "doc.badge.gearshape", "MDM 配置生成") { ProfileGeneratorView() }
                     
-                    // 高级功能（必须勾选漏洞协议才显示）
+                    // AI 功能（必须勾选 AI 协议才显示）
+                    if allowAI {
+                        entry("AI 助手", "brain.head.profile", "API 对话 / 网页自动化操作") { AIChatView() }
+                    }
+                    
+                    // 高级权限功能（必须勾选漏洞协议才显示）
                     if allowExploit {
                         entry("应用管理", "square.grid.3x3", "浏览应用") { AppManagerView() }
                         entry("IPA 管理器", "doc.zipper", "导入与安装 IPA") { IPAManagerView() }
                         entry("证书管理", "key", "p12 + mobileprovision") { CertificateManagementView() }
                         entry("JIT 控制", "bolt.horizontal.circle", "启用侧载 JIT") { JITControlView() }
-                        entry("漏洞利用", "exclamationmark.shield", "自动化内核漏洞") { Expl                        
+                        entry("漏洞利用", "exclamationmark.shield", "自动化内核漏洞") { ExploitSettingsView() }
+                        
                         Button { if !TrollStoreService.shared.openTrollStore() { toast = "未安装 TrollStore" } } label: {
                             card(title: "打开 TrollStore", icon: "shippingbox", description: "跳转到巨魔商店")
                         }
