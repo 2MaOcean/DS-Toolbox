@@ -30,15 +30,23 @@ final class AIService: ObservableObject {
     }
 
     private func requiresAuthorization(call: ToolCall) -> Bool {
-        // 1. 高风险操作必须授权
-        if ["write_file", "download_url"].contains(call.function.name) { return true }
-        // 2. 访问沙盒外的路径必须授权
+        // 1. 高风险操作：强制要求授权，5分钟有效
+        if ["write_file", "download_url"].contains(call.function.name) {
+            if let time = authorizedTools["high_risk"], Date().timeIntervalSince(time) < 300 {
+                return false
+            }
+            return true
+        }
+        // 2. 读取沙盒外：要求授权，永久有效
         if ["list_files", "read_file"].contains(call.function.name),
            let data = call.function.arguments.data(using: .utf8),
            let args = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
            let path = args["path"] as? String {
             let sandbox = NSHomeDirectory()
-            if !path.hasPrefix(sandbox) { return true }
+            if !path.hasPrefix(sandbox) {
+                // 沙盒外读取没有时间限制，只要授权过就直接放行
+                return authorizedTools["read_outside"] == nil
+            }
         }
         return false
     }
@@ -55,12 +63,8 @@ final class AIService: ObservableObject {
                     messages.append(ChatMessage(role: "assistant", content: content, tool_calls: tc, tool_call_id: nil))
                     for call in tc {
                         if requiresAuthorization(call: call) {
-                            if let time = authorizedTools[call.function.name], Date().timeIntervalSince(time) < 300 {
-                                // 5分钟内同类操作免弹窗
-                            } else {
-                                pendingToolCall = call
-                                return // 拦截！等待用户授权
-                            }
+                            pendingToolCall = call
+                            return
                         }
                         if let argsData = call.function.arguments.data(using: .utf8), let args = try? JSONSerialization.jsonObject(with: argsData) as? [String: Any] {
                             let result = (try? await AIToolExecutor.execute(name: call.function.name, arguments: args)) ?? "系统拒绝或执行失败"
@@ -81,7 +85,11 @@ final class AIService: ObservableObject {
 
     func approvePendingTool() {
         guard let call = pendingToolCall else { return }
-        authorizedTools[call.function.name] = Date()
+        if ["write_file", "download_url"].contains(call.function.name) {
+            authorizedTools["high_risk"] = Date()
+        } else {
+            authorizedTools["read_outside"] = Date.distantFuture
+        }
         pendingToolCall = nil
         Task {
             if let argsData = call.function.arguments.data(using: .utf8), let args = try? JSONSerialization.jsonObject(with: argsData) as? [String: Any] {
