@@ -31,15 +31,7 @@ jobs:
         run: xcodegen generate --spec project.yml
 
       - name: Build
-        run: |
-          xcodebuild clean build \
-            -project DSToolbox.xcodeproj \
-            -scheme DSToolbox \
-            -sdk iphoneos \
-            -configuration Release \
-            -derivedDataPath build \
-            CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGNING_REQUIRED=NO
+        run: xcodebuild clean build -project DSToolbox.xcodeproj -scheme DSToolbox -sdk iphoneos -configuration Release -derivedDataPath build CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO
 
       - name: Package
         run: |
