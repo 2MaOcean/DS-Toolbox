@@ -13,6 +13,7 @@ struct FileBrowserPane: View {
     @State private var createKind: CreateKind = .folder
     @State private var newName = ""
     @State private var errorText: String?
+    @State private var showLaraSheet = false
 
     enum CreateKind: String, CaseIterable, Identifiable {
         case folder = "文件夹", plist = "plist", xml = "xml", json = "json"
@@ -64,6 +65,12 @@ struct FileBrowserPane: View {
             if currentDirectory.path != rootDirectory.path {
                 Button { goUp() } label: { Image(systemName: "chevron.up") }
             }
+        }
+        ToolbarItem(placement: .primaryAction) {
+            Button {
+                let t: URL = SandboxService.shared.level == .root ? URL(fileURLWithPath: "/") : URL(fileURLWithPath: NSHomeDirectory())
+                if FileSorter.isDirectory(t) { currentDirectory = t }
+            } label: { Image(systemName: "externaldrive") }
         }
         ToolbarItem(placement: .primaryAction) {
             Menu {
