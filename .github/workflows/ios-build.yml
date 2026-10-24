@@ -12,6 +12,13 @@ jobs:
       - name: Build
         run: |
           xcodebuild clean build \
+      - name: Fetch StikDebug precompiled libraries
+        run: |
+          set -e
+          git clone --depth 1 https://github.com/StephenDev0/StikDebug.git /tmp/StikDebug
+          mkdir -p ios/DSToolbox/StikJITLibs
+          cp -R /tmp/StikDebug/StikJIT/idevice/. ios/DSToolbox/StikJITLibs/ || true
+          ls -la ios/DSToolbox/StikJITLibs/ || true
             -project DSToolbox.xcodeproj \
             -scheme DSToolbox \
             -sdk iphoneos \
