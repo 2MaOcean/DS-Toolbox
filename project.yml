@@ -21,6 +21,15 @@ targets:
     dependencies:
       - package: ZIPFoundation
       - package: ZSign
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.ds.toolbox
+        TARGETED_DEVICE_FAMILY: "1,2"
+        SWIFT_VERSION: "5.9"
+        CODE_SIGNING_ALLOWED: NO
+        CODE_SIGNING_REQUIRED: NO
+        SWIFT_OBJC_BRIDGING_HEADER: ios/DSToolbox/DSToolbox-Bridging-Header.h
+        OTHER_LDFLAGS: "-framework IOSurface -framework Foundation"
     info:
       path: Info.plist
       properties:
@@ -35,10 +44,3 @@ targets:
         NSAppTransportSecurity:
           NSAllowsArbitraryLoads: true
         UIBackgroundModes: [audio, location]
-    settings:
-      base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.ds.toolbox
-        TARGETED_DEVICE_FAMILY: "1,2"
-        SWIFT_VERSION: "5.9"
-        CODE_SIGNING_ALLOWED: NO
-        CODE_SIGNING_REQUIRED: NO

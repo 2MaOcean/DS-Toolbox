@@ -12,6 +12,7 @@ struct TSToolsView: View {
                 }
                 if allowExploit {
                     Section("高级") {
+                        NavigationLink("Lara 功能", destination: LaraFeaturesView())
                         NavigationLink("漏洞调度", destination: ExploitSettingsView())
                         NavigationLink("StikDebug", destination: StikDebugGuideView())
                         NavigationLink("JIT 控制", destination: JITControlView())
