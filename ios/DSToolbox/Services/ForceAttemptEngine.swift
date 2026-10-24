@@ -11,23 +11,20 @@ final class ForceAttemptEngine: ObservableObject {
 
     enum AttemptMethod: String, CaseIterable, Identifiable {
         case vfs = "VFS"
-        caseallow sbx = "SBX"
-         case hybrid = "Hybrid"
-        var id:应用 String { rawValue }
+        case sbx = "SBX"
+        case hybrid = "Hybrid"
+        var id: String { rawValue }
     }
 
-    func setMethod）
-
-(_ m: AttemptMethod) { method``` = m }
+    func setMethod(_ m: AttemptMethod) { method = m }
 
     func run(force: Bool = true) async -> Bool {
         guard !running else { return false }
         running = true; logs.removeAll()
 
         log("尝试方式: \(method.rawValue), 强制: \(force)")
-        let report = EnvironmentManager.shared.info
-        if let r = report, r.isExcludedChip {
-            log("❌ M5/A19 硬件阻断，无法继续")
+        if let r = EnvironmentManager.shared.info, r.isExcludedChip {
+            log("M5/A19 硬件阻断，无法继续")
             running = false; return false
         }
 
@@ -43,17 +40,14 @@ final class ForceAttemptEngine: ObservableObject {
 
         try? await Task.sleep(nanoseconds: 500_000_000)
         switch method {
-        case .vfs:
-            log("VFS 路径：通过 kernelcache 文件系统挂载")
-        case .sbx:
-            log("SBX 路径：绕过沙盒扩展")
-        case .hybrid:
-            log("Hybrid：VFS + SBX 组合")
+        case .vfs: log("VFS 路径：通过 kernelcache 文件系统挂载")
+        case .sbx: log("SBX 路径：绕过沙盒扩展")
+        case .hybrid: log("Hybrid：VFS + SBX 组合")
         }
 
         try? await Task.sleep(nanoseconds: 800_000_000)
         let verified = verifyKernelRead()
-        log(verified ? "✅ 内核读写验证成功" : "⚠️ 内核读写验证失败，偏移可能不匹配")
+        log(verified ? "内核读写验证成功" : "内核读写验证失败，偏移可能不匹配")
 
         running = false
         return verified
