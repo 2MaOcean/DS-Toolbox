@@ -1,19 +1,35 @@
 import SwiftUI
+
 struct SystemMonitorView: View {
-    @StateObject private var monitor = SystemMonitorService.shared
+    @ObservedObject private var svc = SystemMonitorService.shared
+
     var body: some View {
-        ScrollView {
-            if let s = monitor.snapshot {
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 12)], spacing: 12) {
-                    card("CPU", String(format: "%.1f%%", s.cpuUsage), "cpu")
-                    card("内存", byteString(s.memoryUsed) + " / " + byteString(s.memoryTotal), "memorychip")
-                    card("电池", s.batteryLevel >= 0 ? "\(Int(s.batteryLevel * 100))%" : "—", "battery.100")
-                }.padding()
-            } else { ProgressView("正在读取…").padding() }
-        }.navigationTitle("系统监控").onAppear { monitor.start() }.onDisappear { monitor.stop() }
+        Form {
+            if let s = svc.snapshot {
+                Section("CPU") {
+                    ProgressView(value: s.cpuUsage, total: 1.0)
+                    Text(String(format: "%.1f%%", s.cpuUsage * 100))
+                }
+                Section("内存") {
+                    ProgressView(value: Double(s.memoryUsed), total: Double(s.memoryTotal))
+                    Text("\(byteString(s.memoryUsed)) / \(byteString(s.memoryTotal))")
+                }
+                Section("电池") {
+                    Text(s.batteryLevel < 0 ? "未知" : String(format: "%.0f%%", s.batteryLevel * 100))
+                }
+                Section("运行时间") {
+                    Text(formatted(s.uptime))
+                }
+            } else {
+                ProgressView("加载中...")
+            }
+        }
+        .navigationTitle("系统监控")
+        .onAppear { svc.start() }
+        .onDisappear { svc.stop() }
     }
-    private func card(_ title: String, _ val: String, _ icon: String) -> some View {
-        VStack(alignment: .leading, spacing: 8) { Image(systemName: icon).foregroundStyle(.tint); Text(title).font(.caption).foregroundStyle(.secondary); Text(val).font(.headline) }
-        .frame(maxWidth: .infinity, alignment: .leading).padding(14).background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
+    private func formatted(_ t: TimeInterval) -> String {
+        let d = Int(t) / 86400, h = (Int(t) % 86400) / 3600, m = (Int(t) % 3600) / 60
+        return "\(d)天 \(h)时 \(m)分"
     }
 }
