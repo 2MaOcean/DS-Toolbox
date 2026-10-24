@@ -10,15 +10,13 @@ final class BrowserTab: ObservableObject, Identifiable {
     @Published var isLoading: Bool = false
     @Published var canGoBack: Bool = false
     @Published var canGoForward: Bool = false
-    @Published var progress: Double = 0
-    @Published var isDesktopMode: Bool = false
     let webView: WKWebView
+    var observations: [NSKeyValueObservation] = []
 
     init() {
         let config = WKWebViewConfiguration()
         config.websiteDataStore = .default()
         config.allowsInlineMediaPlayback = true
-        config.mediaTypesRequiringUserActionForPlayback = []
         let wv = WKWebView(frame: .zero, configuration: config)
         wv.allowsBackForwardNavigationGestures = true
         self.webView = wv

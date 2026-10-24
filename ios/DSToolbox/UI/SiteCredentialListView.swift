@@ -1,20 +1,33 @@
 import SwiftUI
 
 struct SiteCredentialListView: View {
-    @ObservedObject var store = SiteCredentialStore.shared
+    @ObservedObject private var store = SiteCredentialStore.shared
+
     var body: some View {
         List {
-            if store.credentials.isEmpty { ContentUnavailableView("还没有保存的站点", systemImage: "globe", description: Text("在浏览器中登录网站后会自动保存凭证")) }
-            ForEach(store.credentials) { cred in
-                NavigationLink { DownloadOptionsView(host: cred.host) } label: {
+            if store.credentials.isEmpty {
+                ContentUnavailableView("暂无站点凭证", systemImage: "key")
+            } else {
+                ForEach(store.credentials) { c in
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(cred.displayName).font(.headline)
-                        Text(cred.host).font(.caption).foregroundStyle(.secondary)
+                        Text(c.displayName).font(.headline)
+                        Text(c.host).font(.caption).foregroundStyle(.secondary)
+                        if c.isStale {
+                            Label("已过期", systemImage: "exclamationmark.triangle.fill")
+                                .font(.caption2).foregroundStyle(.orange)
+                        }
+                    }
+                    .swipeActions {
+                        Button("删除", role: .destructive) { store.delete(host: c.host) }
                     }
                 }
-                .swipeActions { Button(role: .destructive) { store.delete(host: cred.host) } label: { Label("删除", systemImage: "trash") } }
             }
         }
         .navigationTitle("站点凭证")
+        .toolbar {
+            ToolbarItem(placement: .destructiveAction) {
+                Button("清空") { store.deleteAll() }.disabled(store.credentials.isEmpty)
+            }
+        }
     }
 }
