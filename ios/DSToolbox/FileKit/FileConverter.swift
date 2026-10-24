@@ -51,7 +51,7 @@ enum FileConverter {
         case .jsonToPlist: try convertJSONToPlist(data: inputData, to: dest)
         case .jsonPretty: try formatJSON(data: inputData, pretty: true, to: dest)
         case .jsonCompact: try formatJSON(data: inputData, pretty: false, to: dest)
-        case .base64Encode: try dest.write(contentsOf: inputData.base64EncodedData())
+        case .base64Encode: try inputData.base64EncodedData().write(to: dest)
         case .base64Decode:
             guard let text = String(data: inputData, encoding: .utf8), let decoded = Data(base64Encoded: text.trimmingCharacters(in: .whitespacesAndNewlines)) else { throw ConverterError.parseFailed("不是合法的 base64") }
             try decoded.write(to: dest)

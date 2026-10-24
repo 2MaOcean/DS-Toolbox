@@ -2,24 +2,26 @@ import Foundation
 
 extension DownloadQueue {
     func pause(id: UUID) {
-        running[id]?.cancel(); running[id] = nil
-        if let i = tasks.firstIndex(where: { $0.id == id }), tasks[i].state == .running || tasks[i].state == .queued { tasks[i].state = .paused }
+        running[id]?.cancel(); running[id] = nil; updateTaskState(id: id, state: .paused)
         clearSpeed(id: id); save(); pump()
     }
     func resume(id: UUID) {
-        if let i = tasks.firstIndex(where: { $0.id == id }), tasks[i].state == .paused || tasks[i].state == .failed { tasks[i].state = .queued; tasks[i].retries = 0 }
-        save(); pump()
+        updateTaskState(id: id, state: .queued); updateRetries(id: id, retries: 0); save(); pump()
     }
     func remove(id: UUID) {
         running[id]?.cancel(); running[id] = nil
         if let i = tasks.firstIndex(where: { $0.id == id }) {
             try? FileManager.default.removeItem(at: tasks[i].taskDirectory)
             if tasks[i].state == .finished { try? FileManager.default.removeItem(at: tasks[i].destination) }
-            tasks.remove(at: i)
+            removeTask(at: i)
         }
         clearSpeed(id: id); DownloadTaskOptionsStore.shared.remove(for: id); save(); pump()
     }
-    func pauseAll() { for (_, t) in running { t.cancel() }; running.removeAll(); for i in tasks.indices where tasks[i].state == .running { tasks[i].state = .paused }; save() }
+    func pauseAll() {
+        for (_, t) in running { t.cancel() }; running.removeAll()
+        for i in tasks.indices where tasks[i].state == .running { updateTaskState(id: tasks[i].id, state: .paused) }
+        save()
+    }
 }
 
 extension DownloadQueue {
@@ -30,12 +32,9 @@ extension DownloadQueue {
     }
 
     func start(_ task: DownloadTask) {
-        if let i = tasks.firstIndex(where: { $0.id == task.id }) { tasks[i].state = .running }
-        save()
+        updateTaskState(id: task.id, state: .running); save()
         let kind = detectKind(task.url)
-        let fingerprint = DownloadFingerprint.fingerprint(for: kind)
-        let tuner: QuarkTuner? = kind == .quark ? QuarkTuner(initial: 4, maxCap: 16) : nil
-        let downloader = AdaptiveDownloader(fingerprint: fingerprint, tuner: tuner)
+        let downloader = AdaptiveDownloader(fingerprint: DownloadFingerprint.fingerprint(for: kind), tuner: kind == .quark ? QuarkTuner(initial: 4, maxCap: 16) : nil)
         let options = DownloadTaskOptionsStore.shared.options(for: task.id)
 
         let handle = Task { [weak self] in
@@ -43,51 +42,26 @@ extension DownloadQueue {
             do {
                 try await downloader.download(url: task.url, to: task.destination, cookieHeader: task.cookieHeader, taskDirectory: task.taskDirectory, options: options) { done, total in
                     Task { @MainActor [weak self] in
-                        guard let self else { return }
-                        if let i = self.tasks.firstIndex(where: { $0.id == task.id }) { self.tasks[i].completedBytes = done; self.tasks[i].totalBytes = total }
-                        self.updateSpeed(id: task.id, completed: done)
+                        self?.updateProgress(id: task.id, done: done, total: total)
+                        self?.updateSpeed(id: task.id, completed: done)
                     }
                 }
                 await MainActor.run {
-                    if let i = self.tasks.firstIndex(where: { $0.id == task.id }) { self.tasks[i].state = .finished }
+                    self.updateTaskState(id: task.id, state: .finished)
                     self.running.removeValue(forKey: task.id); self.clearSpeed(id: task.id); self.completedCount += 1; self.save()
-                    DownloadHistory.shared.append(HistoryRecord(id: UUID(), fileName: task.fileName, size: task.totalBytes, completedAt: Date(), kind: kind.rawValue, urlString: task.url.absoluteString))
                     NotificationManager.shared.notifyDownloadFinished(fileName: task.fileName)
-                    Task { [weak self] in
-                        guard let self else { return }
-                        if self.completedCount % self.cooldownAfterTasks == 0 { await RequestBuilder.cooldown(seconds: self.cooldownSeconds) }
-                        self.pump()
-                    }
+                    Task { if self.completedCount % self.cooldownAfterTasks == 0 { await RequestBuilder.cooldown(seconds: self.cooldownSeconds) }; self.pump() }
                 }
             } catch is CancellationError {
-                await MainActor.run {
-                    if let i = self.tasks.firstIndex(where: { $0.id == task.id }), self.tasks[i].state == .running { self.tasks[i].state = .paused }
-                    self.running.removeValue(forKey: task.id); self.clearSpeed(id: task.id); self.save(); self.pump()
-                }
+                await MainActor.run { self.updateTaskState(id: task.id, state: .paused); self.running.removeValue(forKey: task.id); self.clearSpeed(id: task.id); self.save(); self.pump() }
             } catch let e as DownloaderError {
                 if case .needsRelogin = e {
-                    await MainActor.run { if let i = self.tasks.firstIndex(where: { $0.id == task.id }) { self.tasks[i].state = .failed }; self.running.removeValue(forKey: task.id); self.clearSpeed(id: task.id); self.needsRelogin = kind; self.save() }
+                    await MainActor.run { self.updateTaskState(id: task.id, state: .failed); self.running.removeValue(forKey: task.id); self.clearSpeed(id: task.id); self.needsRelogin = kind; self.save() }
                     return
                 }
-                await MainActor.run {
-                    if let i = self.tasks.firstIndex(where: { $0.id == task.id }) {
-                        self.tasks[i].retries += 1
-                        let willFail = self.tasks[i].retries >= 3
-                        self.tasks[i].state = willFail ? .failed : .queued
-                        if willFail { NotificationManager.shared.notifyDownloadFailed(fileName: task.fileName, reason: e.localizedDescription) }
-                    }
-                    self.running.removeValue(forKey: task.id); self.clearSpeed(id: task.id); self.save(); self.pump()
-                }
+                await MainActor.run { self.updateTaskState(id: task.id, state: .failed); self.running.removeValue(forKey: task.id); self.clearSpeed(id: task.id); self.save(); self.pump() }
             } catch {
-                await MainActor.run {
-                    if let i = self.tasks.firstIndex(where: { $0.id == task.id }) {
-                        self.tasks[i].retries += 1
-                        let willFail = self.tasks[i].retries >= 3
-                        self.tasks[i].state = willFail ? .failed : .queued
-                        if willFail { NotificationManager.shared.notifyDownloadFailed(fileName: task.fileName, reason: error.localizedDescription) }
-                    }
-                    self.running.removeValue(forKey: task.id); self.clearSpeed(id: task.id); self.save(); self.pump()
-                }
+                await MainActor.run { self.updateTaskState(id: task.id, state: .failed); self.running.removeValue(forKey: task.id); self.clearSpeed(id: task.id); self.save(); self.pump() }
             }
         }
         running[task.id] = handle
@@ -103,9 +77,10 @@ extension DownloadQueue {
     private func finalizeBatches() {
         for batch in batches {
             let related = tasks.filter { batch.tasks.contains($0.id) }
-            guard !related.isEmpty, related.allSatisfy({ $0.state == .finished }) else { continue }
-            if let zipped = try? BatchPackager.pack(fileURLs: related.map(\.destination), archiveName: batch.archiveName) { lastPacked = zipped }
+            if !related.isEmpty && related.allSatisfy({ $0.state == .finished }) {
+                if let zipped = try? BatchPackager.pack(fileURLs: related.map(\.destination), archiveName: batch.archiveName) { setPackedURL(zipped) }
+            }
         }
-        batches.removeAll { b in let related = tasks.filter { b.tasks.contains($0.id) }; return related.allSatisfy { $0.state == .finished || $0.state == .failed } }
+        clearBatches()
     }
 }

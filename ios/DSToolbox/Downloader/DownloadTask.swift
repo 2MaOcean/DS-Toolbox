@@ -1,7 +1,7 @@
 import Foundation
 enum TaskState: String, Codable { case queued, running, paused, finished, failed }
 
-struct DownloadTask: Identifiable, Codable {
+struct DownloadTask: Identifiable, Codable, Hashable {
     let id: UUID
     var url: URL
     var fileName: String

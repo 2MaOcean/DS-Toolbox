@@ -53,4 +53,16 @@ final class DownloadQueue: ObservableObject {
     func clearSpeed(id: UUID) { speeds.removeValue(forKey: id) }
     var activeTaskIDs: Set<UUID> { Set(running.keys) }
     func save() { TaskStorage.save(tasks) }
+    
+    func updateTaskState(id: UUID, state: TaskState) {
+        if let i = tasks.firstIndex(where: { $0.id == id }) { tasks[i].state = state }
+    }
+    func updateProgress(id: UUID, done: Int64, total: Int64) {
+        if let i = tasks.firstIndex(where: { $0.id == id }) { tasks[i].completedBytes = done; tasks[i].totalBytes = total }
+    }
+    func setPackedURL(_ url: URL) { lastPacked = url }
+    func clearBatches() { batches.removeAll() }
+    func removeTask(at i: Int) { tasks.remove(at: i) }
+    func updateRetries(id: UUID, retries: Int) { if let i = tasks.firstIndex(where: { $0.id == id }) { tasks[i].retries = retries } }
+    func setBatchArchiveName(index: Int, name: String) { batches[index].archiveName = name }
 }
