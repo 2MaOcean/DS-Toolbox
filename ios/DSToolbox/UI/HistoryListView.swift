@@ -1,16 +1,40 @@
 import SwiftUI
+
 struct HistoryListView: View {
-    @EnvironmentObject var env: ToolboxEnvironment; @State private var toast: String?
+    @ObservedObject private var history = DownloadHistory.shared
+    @EnvironmentObject var env: ToolboxEnvironment
+
     var body: some View {
         List {
-            ForEach(env.history.records) { record in
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(record.fileName).font(.headline).lineLimit(1)
-                    HStack(spacing: 8) { Text(byteString(record.size)).font(.caption2); Text(record.completedAt.formatted(date: .numeric, time: .shortened)).font(.caption2) }.foregroundStyle(.secondary)
-                }.contextMenu {
-                    Button { if let u = URL(string: record.urlString), let k = DriveKind(rawValue: record.kind), let c = CredentialStore.shared.load(kind: k) { _ = try? env.queue.enqueue(url: u, fileName: record.fileName, credential: c, kind: k) } } label: { Label("重新下载", systemImage: "arrow.clockwise") }
+            if history.records.isEmpty {
+                ContentUnavailableView("暂无历史", systemImage: "clock.arrow.circlepath")
+            } else {
+                ForEach(history.records) { r in
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(r.fileName).lineLimit(1)
+                        HStack {
+                            Text(byteString(r.size)).font(.caption2).foregroundStyle(.secondary)
+                            Spacer()
+                            Text(r.completedAt.formatted(date: .abbreviated, time: .shortened))
+                                .font(.caption2).foregroundStyle(.secondary)
+                        }
+                    }
+                    .swipeActions {
+                        Button("重下") { redownload(r) }.tint(.blue)
+                    }
                 }
             }
-        }.navigationTitle("下载历史").navigationBarTitleDisplayMode(.inline)
+        }
+        .navigationTitle("历史")
+        .toolbar {
+            ToolbarItem(placement: .destructiveAction) {
+                Button("清空") { history.clear() }.disabled(history.records.isEmpty)
+            }
+        }
+    }
+
+    private func redownload(_ r: HistoryRecord) {
+        guard let url = URL(string: r.urlString) else { return }
+        _ = try? env.queue.enqueue(url: url, fileName: r.fileName, credential: nil)
     }
 }

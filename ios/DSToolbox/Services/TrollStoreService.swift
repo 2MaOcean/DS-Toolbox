@@ -6,8 +6,10 @@ final class TrollStoreService {
     private init() {}
 
     var isInstalled: Bool {
-        let paths = ["/var/containers/Bundle/Application/.trollstore",
-                     "/var/mobile/Library/Preferences/com.opa334.trollstore.plist"]
+        let paths = [
+            "/var/containers/Bundle/Application/.trollstore",
+            "/var/mobile/Library/Preferences/com.opa334.trollstore.plist"
+        ]
         for p in paths where FileManager.default.fileExists(atPath: p) { return true }
         if let u = URL(string: "apple-magnifier://"), UIApplication.shared.canOpenURL(u) { return true }
         return false
@@ -15,7 +17,17 @@ final class TrollStoreService {
 
     @MainActor
     func open() -> Bool {
-        guard let u = URL(string: "apple-magnifier://"), UIApplication.shared.canOpenURL(u) else { return false }
+        guard let u = URL(string: "apple-magnifier://"),
+              UIApplication.shared.canOpenURL(u) else { return false }
+        UIApplication.shared.open(u)
+        return true
+    }
+
+    @MainActor
+    func installIPA(at url: URL) -> Bool {
+        let path = url.path.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+        guard let u = URL(string: "apple-magnifier://install?url=\(path)"),
+              UIApplication.shared.canOpenURL(u) else { return false }
         UIApplication.shared.open(u)
         return true
     }

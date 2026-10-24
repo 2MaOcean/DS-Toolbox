@@ -157,3 +157,18 @@ struct FileBrowserPane: View {
         selected = selected.filter { files.contains($0) }
     }
 }
+
+extension FileBrowserPane {
+    var errorOverlay: some View {
+        Group {
+            if let e = errorText {
+                Text(e)
+                    .font(.caption)
+                    .foregroundStyle(.red)
+                    .padding(8)
+                    .background(Color.red.opacity(0.1))
+                    .cornerRadius(6)
+            }
+        }
+    }
+}
