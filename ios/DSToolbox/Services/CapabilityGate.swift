@@ -27,14 +27,12 @@ final class CapabilityGate: ObservableObject {
     }
 
     private static func hasGetTaskAllow() -> Bool {
-        guard let path = Bundle.main.executablePath else { return false }
-        var code: SecStaticCode?
-        guard SecStaticCodeCreateWithPath(URL(fileURLWithPath: path) as CFURL, [], &code) == errSecSuccess,
-              let code else { return false }
-        var info: CFDictionary?
-        guard SecCodeCopySigningInformation(code, SecCSFlags(rawValue: kSecCSSigningInformation), &info) == errSecSuccess,
-              let dict = info as? [String: Any],
-              let ents = dict["entitlements-dict"] as? [String: Any] else { return false }
-        return (ents["get-task-allow"] as? Bool) == true
+        // iOS SDK 不含 macOS-only 的 SecStaticCode/SecCodeCopySigningInformation。
+        // 退化为读 embedded.mobileprovision：含 ProvisionedDevices 即开发者签名（get-task-allow=true）。
+        // 越狱 / TrollStore 场景由 refresh() 里其它条件兜底。
+        guard let path = Bundle.main.path(forResource: "embedded", ofType: "mobileprovision"),
+              let data = try? Data(contentsOf: URL(fileURLWithPath: path)) else { return false }
+        let s = String(decoding: data, as: UTF8.self)
+        return s.contains("ProvisionedDevices")
     }
 }
