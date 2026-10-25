@@ -2,6 +2,10 @@ import Foundation
 import Darwin
 import Combine
 
+@_silgen_name("ptrace")
+private func ds_ptrace(_ req: CInt, _ pid: pid_t, _ addr: UnsafeMutableRawPointer?, _ data: CInt) -> CInt
+
+
 @MainActor
 final class StikDebugJIT: ObservableObject {
     static let shared = StikDebugJIT()
@@ -13,7 +17,7 @@ final class StikDebugJIT: ObservableObject {
     func canEnable(bundleID: String) -> Bool { true }
 
     func enableJIT(pid: pid_t) -> Bool {
-        let r = ptrace(Self.PT_ATTACHEXC, pid, nil, 0)
+        let r = ds_ptrace(Self.PT_ATTACHEXC, pid, nil, 0)
         if r == 0 { status = "已附加 pid \(pid)"; return true }
         status = "ptrace 失败 errno=\(errno)"
         return false

@@ -1,11 +1,15 @@
 import Foundation
 import Darwin
 
+@_silgen_name("ptrace")
+private func ds_ptrace(_ req: CInt, _ pid: pid_t, _ addr: UnsafeMutableRawPointer?, _ data: CInt) -> CInt
+
+
 struct JailbreakJITProvider {
     private static let PT_ATTACHEXC: CInt = 14
 
     static func enable(pid: pid_t) -> JITResult {
-        let r = ptrace(Self.PT_ATTACHEXC, pid, nil, 0)
+        let r = ds_ptrace(Self.PT_ATTACHEXC, pid, nil, 0)
         if r == 0 { return JITResult(success: true, message: "已附加 pid \(pid)") }
         let e = errno
         if e == EPERM { return JITResult(success: false, message: "ptrace 权限不足（需越狱/TrollStore）") }
