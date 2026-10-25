@@ -9,7 +9,7 @@ struct KeepAliveView: View {
             Section("音频保活") {
                 Toggle("静音音频保活", isOn: $audioOn)
                     .onChange(of: audioOn) { _, v in
-                        if v { svc.startAudioKeepAlive() } else { svc.stop() }
+                        if v { try? svc.startAudioKeepAlive() } else { svc.stop() }
                     }
                 Text(svc.isRunning ? "运行中" : "已停止")
                     .font(.caption).foregroundStyle(svc.isRunning ? .green : .secondary)

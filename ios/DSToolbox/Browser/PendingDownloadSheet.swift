@@ -21,7 +21,7 @@ struct PendingDownloadSheet: View {
                     Button("加入下载队列") {
                         let siteCred = useSiteCredential ? SiteCredentialStore.shared.credential(for: item.host) : nil
                         let resolvedOptions = DownloadOptionsStore.shared.options(for: item.host)
-                        _ = try? env.queue.enqueue(url: item.url, fileName: fileName, credential: nil, siteCredential: siteCred, options: resolvedOptions)
+                        _ = try? env.queue.enqueue(url: item.url, fileName: fileName, credential: nil, options: resolvedOptions)
                         dismiss()
                     }
                 }

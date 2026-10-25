@@ -20,7 +20,11 @@ struct Aria2ImportView: View {
                     Button("导入") {
                         guard let cred = env.credential else { return }
                         let tasks = Aria2Importer.parse(conf: text)
-                        env.queue.enqueueBatch(ariaTasks: tasks, credential: cred, archiveName: archiveName, autoPack: true)
+                        for t in tasks {
+                            for u in t.urls {
+                                _ = try? env.queue.enqueue(url: u, fileName: t.out ?? u.lastPathComponent, credential: cred)
+                            }
+                        }
                         dismiss()
                     }.disabled(text.isEmpty || env.credential == nil)
                 }

@@ -1,4 +1,5 @@
 import Foundation
+import Security
 import Combine
 
 @MainActor
@@ -16,12 +17,10 @@ final class CapabilityGate: ObservableObject {
         signingType = SigningTypeDetector.shared.type
         canUseTrollStore = TrollStoreService.shared.isInstalled
         canUseDarkSword = DarkSwordKRW.shared.isReady
-
         let isEnterprise = signingType == .enterprise
         let isAppStore = signingType == .appStore
-        let hasGetTaskAllow = Self.hasGetTaskAllow()
         let isJailbroken = FileManager.default.fileExists(atPath: "/var/jb")
-
+        let hasGetTaskAllow = Self.hasGetTaskAllow()
         canUseKRWFiles = (canUseDarkSword || isJailbroken) && !isEnterprise
         canManageProcesses = (hasGetTaskAllow || canUseTrollStore || isJailbroken) && !isEnterprise
         canUseAdvanced = !isEnterprise && !isAppStore

@@ -14,11 +14,8 @@ final class StikDebugJIT: ObservableObject {
 
     func enableJIT(pid: pid_t) -> Bool {
         let r = ptrace(Self.PT_ATTACHEXC, pid, nil, nil)
-        if r == 0 {
-            status = "已附加 pid \(pid)"
-            return true
-        }
-        status = "ptrace 失败 errno=\(errno)（需越狱/TrollStore）"
+        if r == 0 { status = "已附加 pid \(pid)"; return true }
+        status = "ptrace 失败 errno=\(errno)"
         return false
     }
 
