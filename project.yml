@@ -31,6 +31,10 @@ targets:
         CODE_SIGNING_REQUIRED: NO
         SWIFT_OBJC_BRIDGING_HEADER: ios/DSToolbox/DSToolbox-Bridging-Header.h
         OTHER_LDFLAGS: "-framework IOSurface -framework Foundation"
+        HEADER_SEARCH_PATHS:
+          - "$(SRCROOT)/ios/DSToolbox/kexploit/xpf/external/ChOma/src"
+          - "$(SRCROOT)/ios/DSToolbox/kexploit/xpf/external/ChOma/external"
+          - "$(SRCROOT)/ios/DSToolbox/kexploit/xpf/external/img4lib"
     info:
       path: Info.plist
       properties:
