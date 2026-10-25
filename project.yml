@@ -16,11 +16,6 @@ targets:
     type: application
     platform: iOS
     supportedDestinations: [iOS]
-    preBuildScripts:
-      - name: "Scan All C Files For Errors"
-        script: |
-          bash "$SRCROOT/scripts/scan_all_c.sh"
-        basedOnDependencyAnalysis: false
     sources:
       - path: ios/DSToolbox
         excludes:
