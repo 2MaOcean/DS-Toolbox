@@ -8,24 +8,27 @@ final class CapabilityGate: ObservableObject {
     @Published private(set) var canManageProcesses = false
     @Published private(set) var canUseTrollStore = false
     @Published private(set) var canUseDarkSword = false
-    @Published private(set) var canUseSystemMonitor = false
+    @Published private(set) var canUseAdvanced = false
+    @Published private(set) var signingType: SigningType = .unknown
     private init() { refresh() }
 
     func refresh() {
+        signingType = SigningTypeDetector.shared.type
         canUseTrollStore = TrollStoreService.shared.isInstalled
         canUseDarkSword = DarkSwordKRW.shared.isReady
-        canUseKRWFiles = canUseDarkSword || FileManager.default.fileExists(atPath: "/var/jb")
-        canManageProcesses = hasGetTaskAllow() || canUseTrollStore || FileManager.default.fileExists(atPath: "/var/jb")
-        canUseSystemMonitor = true
+
+        let isEnterprise = signingType == .enterprise
+        let isAppStore = signingType == .appStore
+        let hasGetTaskAllow = Self.hasGetTaskAllow()
+        let isJailbroken = FileManager.default.fileExists(atPath: "/var/jb")
+
+        canUseKRWFiles = (canUseDarkSword || isJailbroken) && !isEnterprise
+        canManageProcesses = (hasGetTaskAllow || canUseTrollStore || isJailbroken) && !isEnterprise
+        canUseAdvanced = !isEnterprise && !isAppStore
     }
 
-    private func hasGetTaskAllow() -> Bool {
-        // 读自身 entitlements
+    private static func hasGetTaskAllow() -> Bool {
         guard let path = Bundle.main.executablePath else { return false }
-        return hasEntitlement(path: path, key: "get-task-allow")
-    }
-
-    private func hasEntitlement(path: String, key: String) -> Bool {
         var code: SecStaticCode?
         guard SecStaticCodeCreateWithPath(URL(fileURLWithPath: path) as CFURL, [], &code) == errSecSuccess,
               let code else { return false }
@@ -33,6 +36,6 @@ final class CapabilityGate: ObservableObject {
         guard SecCodeCopySigningInformation(code, SecCSFlags(rawValue: kSecCSSigningInformation), &info) == errSecSuccess,
               let dict = info as? [String: Any],
               let ents = dict["entitlements-dict"] as? [String: Any] else { return false }
-        return (ents[key] as? Bool) == true
+        return (ents["get-task-allow"] as? Bool) == true
     }
 }
