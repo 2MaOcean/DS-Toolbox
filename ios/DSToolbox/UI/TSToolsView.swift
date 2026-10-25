@@ -3,6 +3,7 @@ import SwiftUI
 struct TSToolsView: View {
     @AppStorage("ds.allowExploit") private var allowExploit = false
     @AppStorage("ds.allowAI") private var allowAI = false
+    @ObservedObject private var gate = CapabilityGate.shared
 
     var body: some View {
         NavigationStack {
@@ -10,12 +11,25 @@ struct TSToolsView: View {
                 if allowAI {
                     Section("AI") { NavigationLink("AI 助手", destination: AIChatView()) }
                 }
-                if allowExploit {
-                    Section("高级") {
+                if allowExploit && gate.canUseDarkSword {
+                    Section("Lara 全功能") {
                         NavigationLink("Lara 全功能", destination: LaraFullFeaturesView())
                         NavigationLink("Lara 集成", destination: LaraIntegrationView())
                         NavigationLink("漏洞调度", destination: ExploitSettingsView())
-                        NavigationLink("内部工具", destination: InternalToolsView())
+                    }
+                }
+                if gate.canUseKRWFiles {
+                    Section("文件管理（KRW）") {
+                        NavigationLink("根目录浏览", destination: KrwFileBrowserView())
+                    }
+                }
+                if gate.canManageProcesses {
+                    Section("进程管理") {
+                        NavigationLink("进程列表", destination: ProcessListView())
+                    }
+                }
+                if gate.canUseTrollStore {
+                    Section("TrollStore") {
                         NavigationLink("StikDebug", destination: StikDebugGuideView())
                     }
                 }
@@ -41,6 +55,7 @@ struct TSToolsView: View {
                 }
             }
             .navigationTitle("TS 工具")
+            .onAppear { gate.refresh() }
         }
     }
 }
