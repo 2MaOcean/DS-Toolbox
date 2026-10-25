@@ -27,7 +27,7 @@ final class ProcessManager: ObservableObject {
     }
 
     func kill(pid: pid_t) -> Bool {
-        Darwin.Darwin.kill(pid, SIGKILL) == 0
+        Darwin.kill(pid, SIGKILL) == 0
     }
 }
 

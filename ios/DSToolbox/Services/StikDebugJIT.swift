@@ -13,7 +13,7 @@ final class StikDebugJIT: ObservableObject {
     func canEnable(bundleID: String) -> Bool { true }
 
     func enableJIT(pid: pid_t) -> Bool {
-        let r = ptrace(Self.PT_ATTACHEXC, pid, nil, nil)
+        let r = ptrace(Self.PT_ATTACHEXC, pid, nil, 0)
         if r == 0 { status = "已附加 pid \(pid)"; return true }
         status = "ptrace 失败 errno=\(errno)"
         return false
