@@ -30,27 +30,18 @@ final class EnvironmentGuard {
         let canElevate = !excluded && cap.isChipSupported
 
         var reason: String?
-        if excluded {
-            reason = "M5/A19 受 MIE 硬件保护"
-        } else if !cap.isVersionSupported {
-            reason = "iOS \(cap.iosVersion) 不在支持列表"
-        } else if !hasOffset {
-            reason = "缺少偏移量"
-        } else if sand.level == .sandboxed && !engine.isTrollStore && !engine.isJailbroken {
-            reason = "沙盒环境，功能受限"
-        }
+        if excluded { reason = "M5/A19 受 MIE 硬件保护" }
+        else if !cap.isVersionSupported { reason = "iOS \(cap.iosVersion) 不在支持列表" }
+        else if !hasOffset { reason = "缺少偏移量" }
+        else if sand.level == .sandboxed && !engine.isTrollStore && !engine.isJailbroken { reason = "沙盒环境，功能受限" }
 
         return EnvironmentReport(
-            iosVersion: cap.iosVersion,
-            chip: cap.chipFamily,
+            iosVersion: cap.iosVersion, chip: cap.chipFamily,
             sandboxLevel: sand.level,
-            isJailbroken: engine.isJailbroken,
-            isTrollStore: engine.isTrollStore,
+            isJailbroken: engine.isJailbroken, isTrollStore: engine.isTrollStore,
             hasOffset: hasOffset,
-            versionSupported: cap.isVersionSupported,
-            chipSupported: cap.isChipSupported,
-            canFullFileAccess: canFull,
-            canElevate: canElevate,
+            versionSupported: cap.isVersionSupported, chipSupported: cap.isChipSupported,
+            canFullFileAccess: canFull, canElevate: canElevate,
             blockedReason: reason
         )
     }

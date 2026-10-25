@@ -1,4 +1,6 @@
 import Foundation
+import Darwin
+import Combine
 
 @MainActor
 final class StikDebugJIT: ObservableObject {
@@ -6,12 +8,21 @@ final class StikDebugJIT: ObservableObject {
     @Published private(set) var status = "未配置"
     private init() {}
 
+    private static let PT_ATTACHEXC: CInt = 14
+
     func canEnable(bundleID: String) -> Bool { true }
 
     func enableJIT(pid: pid_t) -> Bool {
-        status = "iOS 沙盒无法直接 ptrace；请通过 StikDebug App 手动操作"
+        let r = ptrace(Self.PT_ATTACHEXC, pid, nil, nil)
+        if r == 0 {
+            status = "已附加 pid \(pid)"
+            return true
+        }
+        status = "ptrace 失败 errno=\(errno)（需越狱/TrollStore）"
         return false
     }
 
-    func findPID(bundleID: String) -> pid_t? { nil }
+    func findPID(bundleID: String) -> pid_t? {
+        JailbreakJITProvider.findPID(bundleID: bundleID)
+    }
 }

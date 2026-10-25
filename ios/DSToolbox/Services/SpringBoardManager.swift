@@ -28,8 +28,7 @@ final class SpringBoardManager: ObservableObject {
 
     func applyAll() async -> Bool {
         guard DarkSwordKRW.shared.isReady else {
-            lastApply = "KRW 未就绪"
-            return false
+            lastApply = "KRW 未就绪"; return false
         }
         var applied = 0
         if fontOverwrite { applied += write("Font") ? 1 : 0 }
@@ -48,15 +47,11 @@ final class SpringBoardManager: ObservableObject {
 
     private func write(_ name: String) -> Bool {
         let src = overwriteRoot.appendingPathComponent(name)
-        guard FileManager.default.fileExists(atPath: src.path) else { return false }
-        return true
+        return FileManager.default.fileExists(atPath: src.path)
     }
 
     func respring() {
-        let p = Process()
-        p.executableURL = URL(fileURLWithPath: "/usr/bin/killall")
-        p.arguments = ["SpringBoard"]
-        try? p.run()
+        _ = ProcessCompat.runAndWait("/usr/bin/killall", ["SpringBoard"])
         lastApply = "已 respring"
     }
 }
