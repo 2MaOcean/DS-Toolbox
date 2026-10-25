@@ -22,6 +22,7 @@ targets:
           - "kexploit/xpf/external/ChOma"
           - "kexploit/xpf/external/img4lib"
           - "kexploit/xpf/external/ChOma.zip"
+          - "kexploit/xpf/src/cli"
       - path: ios/DSToolbox/kexploit/xpf/external/ChOma/src
         includes:
           - "**/*.c"
