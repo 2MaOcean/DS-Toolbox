@@ -39,6 +39,7 @@ struct TSToolsView: View {
                     NavigationLink("保活", destination: KeepAliveView())
                 }
                 Section("工具") {
+                    NavigationLink("触摸录制", destination: TouchRecorderView())
                     NavigationLink("垃圾清理", destination: CleanupView())
                     NavigationLink("描述文件", destination: ProfileGeneratorView())
                     NavigationLink("应用管理", destination: AppManagerView())
