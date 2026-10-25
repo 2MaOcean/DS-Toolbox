@@ -11,9 +11,7 @@ extension DownloadQueue {
     func pauseAll() {
         for (_, t) in running { t.cancel() }
         running.removeAll()
-        for i in tasks.indices where tasks[i].state == .running {
-            updateTaskState(id: tasks[i].id, state: .paused)
-        }
+        for i in tasks.indices where tasks[i].state == .running { updateTaskState(id: tasks[i].id, state: .paused) }
         save()
     }
     func remove(id: UUID) {
@@ -25,9 +23,6 @@ extension DownloadQueue {
         }
         clearSpeed(id: id); save(); pump()
     }
-    func updateTaskState(id: UUID, state: TaskState) { if let i = tasks.firstIndex(where: { $0.id == id }) { tasks[i].state = state } }
-    func updateRetries(id: UUID, retries: Int) { if let i = tasks.firstIndex(where: { $0.id == id }) { tasks[i].retries = retries } }
-    func updateProgress(id: UUID, done: Int64, total: Int64) { if let i = tasks.firstIndex(where: { $0.id == id }) { tasks[i].completedBytes = done; tasks[i].totalBytes = total } }
     func enqueue(url: URL, fileName: String, credential: DriveCredential?, kind: DriveKind = .baidu, options: DownloadOptions? = nil) throws -> UUID {
         let dest = try DownloadPaths.uniqueDestination(in: DownloadDestinationService.shared.currentDirectory, fileName: fileName)
         let task = DownloadTask(id: UUID(), url: url, fileName: fileName, destination: dest, totalBytes: 0, completedBytes: 0, state: .queued, createdAt: Date(), retries: 0, cookieHeader: credential?.cookieHeader ?? "", userAgent: credential?.userAgent ?? "", kind: kind)

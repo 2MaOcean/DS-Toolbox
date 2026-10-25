@@ -1,3 +1,4 @@
+import Darwin
 import Foundation
 import Darwin
 
@@ -10,14 +11,8 @@ struct JailbreakJITProvider {
     }
 
     static func findPID(bundleID: String) -> pid_t? {
-        let task = Process()
-        task.executableURL = URL(fileURLWithPath: "/usr/bin/pgrep")
-        task.arguments = ["-f", bundleID]
-        let pipe = Pipe()
-        task.standardOutput = pipe
-        try? task.run()
-        task.waitUntilExit()
-        let out = String(data: pipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
+        // iOS 无法执行子进程（占位）
+                let out = String(data: pipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
         return pid_t(out.trimmingCharacters(in: .whitespacesAndNewlines))
     }
 }

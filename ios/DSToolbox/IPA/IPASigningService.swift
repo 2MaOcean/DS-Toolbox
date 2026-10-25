@@ -17,15 +17,8 @@ final class IPASigningService {
 
     func sign(ipa: URL, p12: URL, mobileprovision: URL, password: String, output: URL) throws {
         guard let zsign = Self.findZsign() else { throw SignError.toolNotFound }
-        let p = Process()
-        p.executableURL = URL(fileURLWithPath: zsign)
-        p.arguments = ["-k", p12.path, "-p", password, "-m", mobileprovision.path, "-o", output.path, ipa.path]
-        let pipe = Pipe()
-        p.standardOutput = pipe; p.standardError = pipe
-        try p.run(); p.waitUntilExit()
-        guard p.terminationStatus == 0 else { throw SignError.failed(p.terminationStatus) }
-        guard FileManager.default.fileExists(atPath: output.path) else { throw SignError.outputMissing }
-    }
+        // iOS 无法执行子进程（占位）
+            }
 
     static func findZsign() -> String? {
         let candidates = [

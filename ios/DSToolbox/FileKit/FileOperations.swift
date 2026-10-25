@@ -1,34 +1,45 @@
 import Foundation
+
 enum FileOperationsError: LocalizedError {
-    case invalidName, exists, copyFailed(String)
+    case exists, invalidContent
     var errorDescription: String? {
         switch self {
-        case .invalidName: return "文件名无效"; case .exists: return "同名文件已存在"; case .copyFailed(let s): return "复制失败：\(s)"
+        case .exists: return "同名文件已存在"
+        case .invalidContent: return "内容格式无效"
         }
     }
 }
+
 enum FileOperations {
     static func rename(_ url: URL, to newName: String) throws -> URL {
-        let trimmed = newName.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { throw FileOperationsError.invalidName }
-        let dest = url.deletingLastPathComponent().appendingPathComponent(trimmed)
-        if dest.path == url.path { return url }
+        let dest = url.deletingLastPathComponent().appendingPathComponent(newName)
         guard !FileManager.default.fileExists(atPath: dest.path) else { throw FileOperationsError.exists }
-        try FileManager.default.moveItem(at: url, to: dest); return dest
+        try FileManager.default.moveItem(at: url, to: dest)
+        return dest
     }
     static func createFolder(in dir: URL, named name: String) throws -> URL {
-        let dest = dir.appendingPathComponent(name.trimmingCharacters(in: .whitespacesAndNewlines))
+        let dest = dir.appendingPathComponent(name)
         guard !FileManager.default.fileExists(atPath: dest.path) else { throw FileOperationsError.exists }
-        try FileManager.default.createDirectory(at: dest, withIntermediateDirectories: false); return dest
+        try FileManager.default.createDirectory(at: dest, withIntermediateDirectories: false)
+        return dest
     }
-    static func copy(_ sources: [URL], to directory: URL) throws -> [URL] {
-        var created: [URL] = []; let fm = FileManager.default
-        for src in sources {
-            let base = src.lastPathComponent; let ext = (base as NSString).pathExtension; let name = (base as NSString).deletingPathExtension
-            var dest = directory.appendingPathComponent(base); var i = 1
-            while fm.fileExists(atPath: dest.path) { dest = directory.appendingPathComponent(ext.isEmpty ? "\(name) (\(i))" : "\(name) (\(i)).\(ext)"); i += 1 }
-            do { try fm.copyItem(at: src, to: dest); created.append(dest) } catch { throw FileOperationsError.copyFailed(error.localizedDescription) }
-        }
-        return created
+    static func createPlist(in dir: URL, named name: String, content: [String: Any]) throws -> URL {
+        let data = try PropertyListSerialization.data(fromPropertyList: content, format: .xml, options: 0)
+        return try writeNew(in: dir, named: name.hasSuffix(".plist") ? name : "\(name).plist", data: data)
+    }
+    static func createXML(in dir: URL, named name: String, content: String) throws -> URL {
+        guard let data = content.data(using: .utf8) else { throw FileOperationsError.invalidContent }
+        return try writeNew(in: dir, named: name.hasSuffix(".xml") ? name : "\(name).xml", data: data)
+    }
+    static func createJSON(in dir: URL, named name: String, content: String) throws -> URL {
+        guard let data = content.data(using: .utf8),
+              (try? JSONSerialization.jsonObject(with: data)) != nil else { throw FileOperationsError.invalidContent }
+        return try writeNew(in: dir, named: name.hasSuffix(".json") ? name : "\(name).json", data: data)
+    }
+    private static func writeNew(in dir: URL, named name: String, data: Data) throws -> URL {
+        let dest = dir.appendingPathComponent(name)
+        guard !FileManager.default.fileExists(atPath: dest.path) else { throw FileOperationsError.exists }
+        try data.write(to: dest, options: .atomic)
+        return dest
     }
 }
