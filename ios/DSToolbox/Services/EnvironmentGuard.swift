@@ -15,6 +15,7 @@ struct EnvironmentReport {
     let blockedReason: String?
 }
 
+@MainActor
 final class EnvironmentGuard {
     static let shared = EnvironmentGuard()
     private init() {}
@@ -24,9 +25,7 @@ final class EnvironmentGuard {
         let sand = SandboxService.shared
         let engine = ExploitEngine.shared
         let excluded = cap.chipFamily == .m5 || cap.chipFamily == .a19 || cap.chipFamily == .a19Pro
-        let hasOffset = OffsetDatabase.shared.offsetsFor(
-            iosVersion: cap.iosVersion, chip: cap.chipFamily
-        ) != nil
+        let hasOffset = OffsetDatabase.shared.offsetsFor(iosVersion: cap.iosVersion, chip: cap.chipFamily) != nil
         let canFull = sand.canAccessSystemFiles
         let canElevate = !excluded && cap.isChipSupported
 

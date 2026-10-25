@@ -12,8 +12,7 @@ struct KeepAliveView: View {
                         if v { svc.startAudioKeepAlive() } else { svc.stop() }
                     }
                 Text(svc.isRunning ? "运行中" : "已停止")
-                    .font(.caption)
-                    .foregroundStyle(svc.isRunning ? .green : .secondary)
+                    .font(.caption).foregroundStyle(svc.isRunning ? .green : .secondary)
             }
             Section("说明") {
                 Text("开启后播放无声音频，保持 App 在后台持续运行。会消耗少量电池。")
