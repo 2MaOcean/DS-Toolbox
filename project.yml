@@ -20,15 +20,11 @@ targets:
       - path: ios/DSToolbox
         excludes:
           - "kexploit/xpf/external/ChOma"
-      - path: ios/DSToolbox/kexploit/xpf/external/ChOma
+          - "kexploit/xpf/external/ChOma.zip"
+      - path: ios/DSToolbox/kexploit/xpf/external/ChOma/src
         includes:
           - "**/*.c"
           - "**/*.h"
-          - "**/*.m"
-          - "**/*.mm"
-          - "**/*.cpp"
-          - "**/*.cc"
-        buildPhase: sources
     dependencies:
       - package: ZIPFoundation
       - package: ZSign
@@ -43,6 +39,7 @@ targets:
         SWIFT_OBJC_BRIDGING_HEADER: ios/DSToolbox/DSToolbox-Bridging-Header.h
         OTHER_LDFLAGS: "-framework IOSurface -framework Foundation -lz -llzma"
         HEADER_SEARCH_PATHS:
+          - "$(SRCROOT)/ios/DSToolbox/kexploit/xpf/external/ChOma/headers"
           - "$(SRCROOT)/ios/DSToolbox/kexploit/xpf/external/ChOma/src"
           - "$(SRCROOT)/ios/DSToolbox/kexploit/xpf/external/ChOma/external"
           - "$(SRCROOT)/ios/DSToolbox/kexploit/xpf/external/img4lib"
