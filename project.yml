@@ -20,11 +20,19 @@ targets:
       - path: ios/DSToolbox
         excludes:
           - "kexploit/xpf/external/ChOma"
+          - "kexploit/xpf/external/img4lib"
           - "kexploit/xpf/external/ChOma.zip"
       - path: ios/DSToolbox/kexploit/xpf/external/ChOma/src
         includes:
           - "**/*.c"
           - "**/*.h"
+      - path: ios/DSToolbox/kexploit/xpf/external/img4lib
+        includes:
+          - "lzss.c"
+          - "libvfs/*.c"
+          - "libDER/*.c"
+        excludes:
+          - "libvfs/vfs_lzvn.c"
     dependencies:
       - package: ZIPFoundation
       - package: ZSign
@@ -37,12 +45,20 @@ targets:
         CODE_SIGNING_ALLOWED: NO
         CODE_SIGNING_REQUIRED: NO
         SWIFT_OBJC_BRIDGING_HEADER: ios/DSToolbox/DSToolbox-Bridging-Header.h
-        OTHER_LDFLAGS: "-framework IOSurface -framework Foundation -lz -llzma"
+        OTHER_LDFLAGS: "-framework IOSurface -framework Foundation -lz -llzma -framework Security -lcompression"
         HEADER_SEARCH_PATHS:
           - "$(SRCROOT)/ios/DSToolbox/kexploit/xpf/external/ChOma/headers"
           - "$(SRCROOT)/ios/DSToolbox/kexploit/xpf/external/ChOma/src"
           - "$(SRCROOT)/ios/DSToolbox/kexploit/xpf/external/ChOma/external"
           - "$(SRCROOT)/ios/DSToolbox/kexploit/xpf/external/img4lib"
+          - "$(SRCROOT)/ios/DSToolbox/kexploit/xpf/external/img4lib/libDER"
+        GCC_PREPROCESSOR_DEFINITIONS:
+          - "USE_COMMONCRYPTO=1"
+          - "USE_LIBCOMPRESSION=1"
+          - "iOS10=1"
+          - "DER_MULTIBYTE_TAGS=1"
+          - "DER_TAG_SIZE=8"
+          - "__unused=__attribute__((unused))"
     info:
       path: Info.plist
       properties:

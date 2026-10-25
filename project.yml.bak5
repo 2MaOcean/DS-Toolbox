@@ -1,0 +1,59 @@
+name: DSToolbox
+options:
+  bundleIdPrefix: com.ds
+  deploymentTarget:
+    iOS: "18.0"
+  createIntermediateGroups: true
+packages:
+  ZIPFoundation:
+    url: https://github.com/weichsel/ZIPFoundation
+    from: 0.9.0
+  ZSign:
+    url: https://github.com/zwsn/zsign-ios
+    branch: main
+targets:
+  DSToolbox:
+    type: application
+    platform: iOS
+    supportedDestinations: [iOS]
+    sources:
+      - path: ios/DSToolbox
+        excludes:
+          - "kexploit/xpf/external/ChOma"
+          - "kexploit/xpf/external/ChOma.zip"
+      - path: ios/DSToolbox/kexploit/xpf/external/ChOma/src
+        includes:
+          - "**/*.c"
+          - "**/*.h"
+    dependencies:
+      - package: ZIPFoundation
+      - package: ZSign
+        product: ZSignApple
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.ds.toolbox
+        TARGETED_DEVICE_FAMILY: "1,2"
+        SWIFT_VERSION: "5.9"
+        CODE_SIGNING_ALLOWED: NO
+        CODE_SIGNING_REQUIRED: NO
+        SWIFT_OBJC_BRIDGING_HEADER: ios/DSToolbox/DSToolbox-Bridging-Header.h
+        OTHER_LDFLAGS: "-framework IOSurface -framework Foundation -lz -llzma"
+        HEADER_SEARCH_PATHS:
+          - "$(SRCROOT)/ios/DSToolbox/kexploit/xpf/external/ChOma/headers"
+          - "$(SRCROOT)/ios/DSToolbox/kexploit/xpf/external/ChOma/src"
+          - "$(SRCROOT)/ios/DSToolbox/kexploit/xpf/external/ChOma/external"
+          - "$(SRCROOT)/ios/DSToolbox/kexploit/xpf/external/img4lib"
+    info:
+      path: Info.plist
+      properties:
+        CFBundleDisplayName: DS工具箱
+        CFBundleURLTypes:
+          - CFBundleURLName: com.ds.toolbox
+            CFBundleURLSchemes: [dstoolbox]
+        UILaunchScreen:
+          UIImageName: LaunchIcon
+        UIFileSharingEnabled: true
+        LSSupportsOpeningDocumentsInPlace: true
+        NSAppTransportSecurity:
+          NSAllowsArbitraryLoads: true
+        UIBackgroundModes: [audio, location]
