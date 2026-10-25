@@ -8,6 +8,7 @@ struct AgreementView: View {
     @State private var exploitChecked = false
     @State private var aiChecked = false
     @State private var reachedBottom = false
+    @State private var showRejectConfirm = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -29,7 +30,13 @@ struct AgreementView: View {
                 if !reachedBottom && v <= 8 { reachedBottom = true }
             }
 
-            enterButton
+            bottomButtons
+        }
+        .alert("确认拒绝协议？", isPresented: $showRejectConfirm) {
+            Button("退出应用", role: .destructive) { exit(0) }
+            Button("取消", role: .cancel) {}
+        } message: {
+            Text("拒绝协议后应用无法使用，需要重新启动后再次确认。")
         }
     }
 
@@ -104,19 +111,34 @@ struct AgreementView: View {
         .frame(height: reachedBottom ? nil : 0)
     }
 
-    private var enterButton: some View {
-        Button {
-            allowExploit = exploitChecked
-            allowAI = aiChecked
-            hasAccepted = true
-        } label: {
-            Text("进入应用")
-                .frame(maxWidth: .infinity).padding()
-                .background(coreChecked ? Color.accentColor : Color.gray)
-                .foregroundStyle(.white).cornerRadius(10)
+    private var bottomButtons: some View {
+        VStack(spacing: 0) {
+            Divider()
+            HStack(spacing: 12) {
+                Button {
+                    showRejectConfirm = true
+                } label: {
+                    Text("不同意")
+                        .frame(maxWidth: .infinity).padding()
+                        .background(Color.gray.opacity(0.2))
+                        .foregroundStyle(.primary).cornerRadius(10)
+                }
+
+                Button {
+                    allowExploit = exploitChecked
+                    allowAI = aiChecked
+                    hasAccepted = true
+                } label: {
+                    Text("同意并进入")
+                        .frame(maxWidth: .infinity).padding()
+                        .background(coreChecked ? Color.accentColor : Color.gray)
+                        .foregroundStyle(.white).cornerRadius(10)
+                }
+                .disabled(!coreChecked)
+            }
+            .padding()
         }
-        .padding()
-        .disabled(!coreChecked)
+        .background(Color(UIColor.systemBackground))
     }
 }
 
