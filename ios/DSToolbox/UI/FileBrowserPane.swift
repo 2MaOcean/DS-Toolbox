@@ -13,6 +13,7 @@ struct FileBrowserPane: View {
     @State private var createKind: CreateKind = .folder
     @State private var newName = ""
     @State private var errorText: String?
+    @State private var accessDenied = false
     @State private var showLaraSheet = false
 
     enum CreateKind: String, CaseIterable, Identifiable {
@@ -36,20 +37,17 @@ struct FileBrowserPane: View {
     var body: some View {
         NavigationStack {
             List(selection: $selected) {
-                if displayedFiles.isEmpty {
-                    ContentUnavailableView("空目录", systemImage: "folder")
-                }
+                if displayedFiles.isEmpty { emptyState }
                 ForEach(displayedFiles, id: \.self) { f in row(for: f) }
             }
             .searchable(text: $searchText, prompt: "搜索文件")
             .navigationTitle(currentDirectory.path == rootDirectory.path ? paneLabel : currentDirectory.lastPathComponent)
             .toolbar { toolbar }
+            .overlay(alignment: .top) { errorBanner }
             .alert("高风险确认", isPresented: $showDeleteAlert) {
                 Button("删除", role: .destructive) { performDelete(pendingDelete); pendingDelete = [] }
                 Button("取消", role: .cancel) { pendingDelete = [] }
-            } message: {
-                Text("包含高风险文件或系统目录，确定继续吗？")
-            }
+            } message: { Text("包含高风险文件或系统目录，确定继续吗？") }
             .alert("新建 \(createKind.rawValue)", isPresented: $createPrompt) {
                 TextField("名称", text: $newName)
                 Button("创建") { createNew() }
@@ -57,6 +55,35 @@ struct FileBrowserPane: View {
             }
             .onAppear(perform: reload)
             .onChange(of: currentDirectory) { _, _ in reload() }
+        }
+    }
+
+    @ViewBuilder private var emptyState: some View {
+        if accessDenied {
+            ContentUnavailableView {
+                Label("无法访问", systemImage: "lock.fill")
+            } description: {
+                Text("当前环境无权读取此目录。越狱 / TrollStore 环境可访问系统路径；普通安装只能浏览 App 沙盒。")
+            }
+        } else {
+            ContentUnavailableView("空目录", systemImage: "folder")
+        }
+    }
+
+    @ViewBuilder private var errorBanner: some View {
+        if let e = errorText {
+            Text(e)
+                .font(.caption).foregroundStyle(.white)
+                .padding(.horizontal, 12).padding(.vertical, 8)
+                .background(Color.red.opacity(0.9)).cornerRadius(8)
+                .padding(.top, 8)
+                .transition(.move(edge: .top).combined(with: .opacity))
+                .onAppear {
+                    Task {
+                        try? await Task.sleep(nanoseconds: 3_000_000_000)
+                        withAnimation { errorText = nil }
+                    }
+                }
         }
     }
 
@@ -69,7 +96,7 @@ struct FileBrowserPane: View {
         ToolbarItem(placement: .primaryAction) {
             Button {
                 let t: URL = SandboxService.shared.level == .root ? URL(fileURLWithPath: "/") : URL(fileURLWithPath: NSHomeDirectory())
-                if FileSorter.isDirectory(t) { currentDirectory = t }
+                currentDirectory = t
             } label: { Image(systemName: "externaldrive") }
         }
         ToolbarItem(placement: .primaryAction) {
@@ -95,12 +122,10 @@ struct FileBrowserPane: View {
         let risk = FileRiskManager.shared.level(for: f)
         if isDir {
             Button { currentDirectory = f } label: { rowContent(f, isDir: true, risk: risk) }
-                .tag(f)
-                .contextMenu { contextMenu(for: f) }
+                .tag(f).contextMenu { contextMenu(for: f) }
         } else {
             NavigationLink { FileViewer(url: f) } label: { rowContent(f, isDir: false, risk: risk) }
-                .tag(f)
-                .contextMenu { contextMenu(for: f) }
+                .tag(f).contextMenu { contextMenu(for: f) }
         }
     }
 
@@ -140,12 +165,14 @@ struct FileBrowserPane: View {
     }
 
     private func createNew() {
+        let trimmed = newName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { errorText = "名称不能为空"; return }
         do {
             switch createKind {
-            case .folder: _ = try FileOperations.createFolder(in: currentDirectory, named: newName)
-            case .plist: _ = try FileOperations.createPlist(in: currentDirectory, named: newName, content: [:])
-            case .xml: _ = try FileOperations.createXML(in: currentDirectory, named: newName, content: "<?xml version=\"1.0\"?><root/>")
-            case .json: _ = try FileOperations.createJSON(in: currentDirectory, named: newName, content: "{}")
+            case .folder: _ = try FileOperations.createFolder(in: currentDirectory, named: trimmed)
+            case .plist: _ = try FileOperations.createPlist(in: currentDirectory, named: trimmed, content: [:])
+            case .xml: _ = try FileOperations.createXML(in: currentDirectory, named: trimmed, content: "<?xml version=\"1.0\"?><root/>")
+            case .json: _ = try FileOperations.createJSON(in: currentDirectory, named: trimmed, content: "{}")
             }
             newName = ""
             reload()
@@ -160,22 +187,13 @@ struct FileBrowserPane: View {
     }
 
     private func reload() {
-        files = (try? FileManager.default.contentsOfDirectory(at: currentDirectory, includingPropertiesForKeys: nil)) ?? []
-        selected = selected.filter { files.contains($0) }
-    }
-}
-
-extension FileBrowserPane {
-    var errorOverlay: some View {
-        Group {
-            if let e = errorText {
-                Text(e)
-                    .font(.caption)
-                    .foregroundStyle(.red)
-                    .padding(8)
-                    .background(Color.red.opacity(0.1))
-                    .cornerRadius(6)
-            }
+        do {
+            files = try FileManager.default.contentsOfDirectory(at: currentDirectory, includingPropertiesForKeys: nil)
+            accessDenied = false
+        } catch {
+            files = []
+            accessDenied = true
         }
+        selected = selected.filter { files.contains($0) }
     }
 }
