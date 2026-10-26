@@ -107,8 +107,6 @@ struct AgreementView: View {
                 .font(.caption2).foregroundStyle(.secondary)
         }
         .padding(.top, 16)
-        .opacity(reachedBottom ? 1.0 : 0.0)
-        .frame(height: reachedBottom ? nil : 0)
     }
 
     private var bottomButtons: some View {
