@@ -63,7 +63,7 @@ targets:
     info:
       path: Info.plist
       properties:
-        CFBundleDisplayName: DS工具箱
+        CFBundleDisplayName: DSToolbox
         CFBundleURLTypes:
           - CFBundleURLName: com.ds.toolbox
             CFBundleURLSchemes: [dstoolbox]
