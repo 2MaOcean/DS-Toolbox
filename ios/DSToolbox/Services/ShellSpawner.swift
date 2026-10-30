@@ -2,51 +2,60 @@ import Foundation
 import Darwin
 
 enum ShellSpawner {
-    struct Result { let out: String; let err: String; let code: Int32 }
+    struct Result {
+        let out: String
+        let err: String
+        let code: Int32
+    }
 
-    static func spawn(path: String, args: [String], cwd: URL? = nil) -> Result {
-        var stdinPipe: [Int32] = [0, 0]
-        var stdoutPipe: [Int32] = [0, 0]
-        var stderrPipe: [Int32] = [0, 0]
-        guard pipe(&stdinPipe) == 0, pipe(&stdoutPipe) == 0, pipe(&stderrPipe) == 0 else {
+    static func spawn(path: String, args: [String]) -> Result {
+        var outP: [Int32] = [0, 0]
+        var errP: [Int32] = [0, 0]
+        guard pipe(&outP) == 0, pipe(&errP) == 0 else {
             return Result(out: "", err: "pipe failed", code: -1)
         }
-        var fileActions: posix_spawn_file_actions_t?
-        posix_spawn_file_actions_init(&fileActions)
-        posix_spawn_file_actions_adddup2(&fileActions, stdinPipe[0], 0)
-        posix_spawn_file_actions_adddup2(&fileActions, stdoutPipe[1], 1)
-        posix_spawn_file_actions_adddup2(&fileActions, stderrPipe[1], 2)
-        if let c = cwd { posix_spawn_file_actions_addchdir_np(&fileActions, c.path) }
-        posix_spawn_file_actions_addclose(&fileActions, stdinPipe[1])
-        posix_spawn_file_actions_addclose(&fileActions, stdoutPipe[0])
-        posix_spawn_file_actions_addclose(&fileActions, stderrPipe[0])
+        var fa: posix_spawn_file_actions_t?
+        posix_spawn_file_actions_init(&fa)
+        posix_spawn_file_actions_addopen(&fa, 0, "/dev/null", O_RDONLY, 0)
+        posix_spawn_file_actions_adddup2(&fa, outP[1], 1)
+        posix_spawn_file_actions_adddup2(&fa, errP[1], 2)
+        posix_spawn_file_actions_addclose(&fa, outP[0])
+        posix_spawn_file_actions_addclose(&fa, errP[0])
+        posix_spawn_file_actions_addclose(&fa, outP[1])
+        posix_spawn_file_actions_addclose(&fa, errP[1])
 
         var cArgs: [UnsafeMutablePointer<CChar>?] = args.map { strdup($0) }
         cArgs.append(nil)
         defer { cArgs.forEach { if let p = $0 { free(p) } } }
 
         var pid: pid_t = 0
-        let rc = posix_spawn(&pid, path, &fileActions, nil, cArgs, environ)
-        posix_spawn_file_actions_destroy(&fileActions)
-        close(stdinPipe[0]); close(stdoutPipe[1]); close(stderrPipe[1])
-        close(stdinPipe[1])
+        let rc = posix_spawn(&pid, path, &fa, nil, cArgs, environ)
+        posix_spawn_file_actions_destroy(&fa)
+        close(outP[1])
+        close(errP[1])
+
         guard rc == 0 else {
-            close(stdoutPipe[0]); close(stderrPipe[0])
-            return Result(out: "", err: "spawn failed: \(String(cString: strerror(rc)))", code: rc)
+            close(outP[0])
+            close(errP[0])
+            let m = String(cString: strerror(rc))
+            return Result(out: "", err: "spawn failed: \(m)", code: rc)
         }
-        let outData = readAll(fd: stdoutPipe[0])
-        let errData = readAll(fd: stderrPipe[0])
-        close(stdoutPipe[0]); close(stderrPipe[0])
+
+        let outD = readAll(fd: outP[0])
+        let errD = readAll(fd: errP[0])
+        close(outP[0])
+        close(errP[0])
         var status: Int32 = 0
         waitpid(pid, &status, 0)
         let code = (status >> 8) & 0xFF
-        return Result(out: String(decoding: outData, as: UTF8.self),
-                      err: String(decoding: errData, as: UTF8.self),
-                      code: code)
+        let outS = String(decoding: outD, as: UTF8.self)
+        let errS = String(decoding: errD, as: UTF8.self)
+        return Result(out: outS, err: errS, code: code)
     }
 
     private static func readAll(fd: Int32) -> Data {
-        var data = Data(); var buf = [UInt8](repeating: 0, count: 4096)
+        var data = Data()
+        var buf = [UInt8](repeating: 0, count: 4096)
         while true {
             let n = read(fd, &buf, buf.count)
             if n <= 0 { break }

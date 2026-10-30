@@ -72,3 +72,84 @@ extension CommandEngine {
         }
     }
 }
+
+    func runPKG(_ args: [String]) -> CommandResult {
+        guard let sub = args.first else {
+            let h = "pkg install <name>\npkg list\npkg search <kw>\npkg update"
+            return .ok(h)
+        }
+        let rest = Array(args.dropFirst())
+        switch sub {
+        case "install":
+            if ShellBackend.which("apt") != nil {
+                return runExternal("apt", ["install", "-y"] + rest)
+            }
+            if ShellBackend.which("apk") != nil {
+                return runExternal("apk", ["add"] + rest)
+            }
+            return .err("没有可用的包管理器（apt/apk）")
+        case "remove":
+            if ShellBackend.which("apt") != nil {
+                return runExternal("apt", ["remove", "-y"] + rest)
+            }
+            if ShellBackend.which("apk") != nil {
+                return runExternal("apk", ["del"] + rest)
+            }
+            return .err("没有可用的包管理器")
+        case "list":
+            if ShellBackend.which("dpkg") != nil {
+                return runExternal("dpkg", ["-l"])
+            }
+            if ShellBackend.which("apk") != nil {
+                return runExternal("apk", ["info"])
+            }
+            return .err("没有 dpkg/apk")
+        case "search":
+            if ShellBackend.which("apt") != nil {
+                return runExternal("apt", ["search"] + rest)
+            }
+            if ShellBackend.which("apk") != nil {
+                return runExternal("apk", ["search"] + rest)
+            }
+            return .err("没有包管理器")
+        case "update":
+            if ShellBackend.which("apt") != nil {
+                return runExternal("apt", ["update"])
+            }
+            return .err("没有 apt")
+        default:
+            return .err("pkg: 未知子命令 \(sub)")
+        }
+    }
+
+    func runINSTALL(_ args: [String]) -> CommandResult {
+        guard let p = args.first else {
+            return .err("install: usage: install <file.ipa|file.deb>")
+        }
+        let url = resolve(p)
+        guard fm.fileExists(atPath: url.path) else {
+            return .err("install: \(p): 文件不存在")
+        }
+        let ext = url.pathExtension.lowercased()
+        if ext == "deb" {
+            if ShellBackend.current != .jailbreak {
+                return .err("install deb: 需要越狱 + dpkg")
+            }
+            if ShellBackend.which("dpkg") == nil {
+                return .err("install deb: 未找到 dpkg")
+            }
+            return runExternal("dpkg", ["-i", url.path])
+        }
+        if ext == "ipa" {
+            if ShellBackend.current == .trollStore {
+                let enc = url.path.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? url.path
+                if let u = URL(string: "apple-magnifier://install?url=file://\(enc)") {
+                    DispatchQueue.main.async { UIApplication.shared.open(u) }
+                    return .ok("已通过 TrollStore 打开安装")
+                }
+            }
+            return .err("install ipa: 非 TrollStore 环境请去 IPA 管理页自签")
+        }
+        return .err("install: 不支持 .\(ext)")
+    }
+}
