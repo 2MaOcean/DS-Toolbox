@@ -23,34 +23,27 @@ enum ShellSpawner {
         posix_spawn_file_actions_addclose(&fa, errP[0])
         posix_spawn_file_actions_addclose(&fa, outP[1])
         posix_spawn_file_actions_addclose(&fa, errP[1])
-
         var cArgs: [UnsafeMutablePointer<CChar>?] = args.map { strdup($0) }
         cArgs.append(nil)
         defer { cArgs.forEach { if let p = $0 { free(p) } } }
-
         var pid: pid_t = 0
         let rc = posix_spawn(&pid, path, &fa, nil, cArgs, environ)
         posix_spawn_file_actions_destroy(&fa)
-        close(outP[1])
-        close(errP[1])
-
+        close(outP[1]); close(errP[1])
         guard rc == 0 else {
-            close(outP[0])
-            close(errP[0])
+            close(outP[0]); close(errP[0])
             let m = String(cString: strerror(rc))
             return Result(out: "", err: "spawn failed: \(m)", code: rc)
         }
-
         let outD = readAll(fd: outP[0])
         let errD = readAll(fd: errP[0])
-        close(outP[0])
-        close(errP[0])
+        close(outP[0]); close(errP[0])
         var status: Int32 = 0
         waitpid(pid, &status, 0)
         let code = (status >> 8) & 0xFF
-        let outS = String(decoding: outD, as: UTF8.self)
-        let errS = String(decoding: errD, as: UTF8.self)
-        return Result(out: outS, err: errS, code: code)
+        let o = String(decoding: outD, as: UTF8.self)
+        let e = String(decoding: errD, as: UTF8.self)
+        return Result(out: o, err: e, code: code)
     }
 
     private static func readAll(fd: Int32) -> Data {

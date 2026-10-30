@@ -21,7 +21,7 @@ extension CommandEngine {
             return .err("du: \(path): No such file")
         }
         var total: Int64 = 0
-        let keys: [URLResourceKey] = [.fileSizeKey]
+        let keys: Set<URLResourceKey> = [.fileSizeKey]
         if let e = fm.enumerator(at: url, includingPropertiesForKeys: keys) {
             for case let f as URL in e {
                 if let s = (try? f.resourceValues(forKeys: keys))?.fileSize {
