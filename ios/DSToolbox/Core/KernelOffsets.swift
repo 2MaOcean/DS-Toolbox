@@ -6,8 +6,15 @@ final class OffsetDatabase {
     private init() { loadBuiltin() }
 
     func offsetsFor(iosVersion: String, chip: ChipFamily) -> KernelOffsets? {
+        let __short = iosVersion.split(separator: ".").prefix(2).joined(separator: ".")
+        print("[KernelOffsets] lookup \(__short)/\(chip.rawValue)")
         let shortVersion = iosVersion.split(separator: ".").prefix(2).joined(separator: ".")
-        return table.first { $0.iosVersion == shortVersion && $0.chip == chip.rawValue }
+        if let hit = table.first(where: { $0.iosVersion == shortVersion && $0.chip == chip.rawValue }) {
+            return hit
+        }
+        // 关键修复：缺失时明确失败，避免上层无超时等待
+        print("[KernelOffsets] 缺失偏移量: iOS \(shortVersion) / chip \(chip.rawValue)")
+        return nil
     }
 
     private func loadBuiltin() {
