@@ -5,6 +5,11 @@ struct QuarkAdapter: CloudDriveAdapter, CookieResolvableAdapter {
     var loginURL: URL { URL(string: "https://pan.quark.cn/")! }
     var requiredCookieNames: [String] { ["__pus"] }
     var apiBase: String { "https://drive-pc.quark.cn" }
+    var userAgent: String {
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+        + "AppleWebKit/537.36 (KHTML, like Gecko) "
+        + "Chrome/120.0.0.0 Safari/537.36"
+    }
 
     func canHandle(_ url: URL) -> Bool {
         guard let h = url.host?.lowercased() else { return false }
